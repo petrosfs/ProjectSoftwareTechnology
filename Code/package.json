@@ -76,9 +76,18 @@
     "vaul": "1.1.2",
     "vite": "6.3.5"
   },
-  "peerDependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
   "peerDependenciesMeta": {
-    "react
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "6.3.5"
+    }
+  },
+  "packageManager": "pnpm@11.1.1"
+}
