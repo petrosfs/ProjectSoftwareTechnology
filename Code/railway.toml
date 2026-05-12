@@ -1,2 +1,7 @@
 [build]
-buildCommand = "npm ci && npm run build"
+builder = "nixpacks"
+buildCommand = "pnpm install --no-frozen-lockfile && pnpm run build"
+
+[deploy]
+startCommand = "caddy run --config /assets/Caddyfile --adapter caddyfile 2>&1"
+healthcheckPath = "/"
