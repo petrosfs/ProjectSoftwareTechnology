@@ -31,7 +31,7 @@
 - ClickUp (Οργάνωση task)
 - Vs Code
 - Figma
-- Railway
+- Railway (Hosting)
 - Express
 - TypeScript
 
