@@ -1,13 +1,17 @@
 // SearchController.ts
 // Source: UC-SRC-02
 
-import { Skill } from '../types';
+import { Skill } from '../../src/app/types';
 
 export class SearchController {
-  initiateSearch(keyword: string): Skill[] {
-    // TODO: query backend for skills matching keyword
-    console.warn('SearchController.initiateSearch not implemented');
+  search(keyword: string): Skill[] {
+    // TODO: query database for listings/skills matching keyword
+    console.warn('SearchController.search not implemented');
     return [];
+  }
+
+  initiateSearch(keyword: string): Skill[] {
+    return this.search(keyword);
   }
 
   getSkillDetails(skillId: string): Skill | null {

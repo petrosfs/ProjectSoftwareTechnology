@@ -1,7 +1,7 @@
 // MySkillsController.ts
 // Source: UC-SKL-02
 
-import { MySkills } from '../types';
+import { MySkills } from '../../src/app/types';
 
 export class MySkillsController {
   loadSkills(userId: string): MySkills[] {
