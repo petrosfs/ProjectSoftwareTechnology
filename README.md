@@ -45,6 +45,8 @@
 - `Code/public`: στατικά αρχεία assets (π.χ. `skillus-logo.png`)
 - `Code/index.html`: κεντρικό HTML αρχείο εφαρμογής
 
+Το hosting της πλαφόρμας γίνεται στο Railway και υπάρχει πρόσβαση στους χρήστες μέσω της παρακάτω διεύθυνσης https://projectsoftwaretechnology-production.up.railway.app
+
 ## Ομάδα έργου
 - Αγγελής Γιώργος — Contributor, Peer Reviewer
 - Αγγελόπουλος Μιχάλης — Contributor, Peer Reviewer
