@@ -32,6 +32,10 @@ app.use(
   })
 );
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.use('/api', apiRouter);
 
 if (process.env.NODE_ENV === 'production') {
