@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, TrendingUp, Users, BookOpen, Star, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router';
-import { skillListings } from '../mockData';
 import { SkillCard } from './SkillCard';
 import { CreateListingModal } from './CreateListingModal';
 
@@ -9,18 +8,25 @@ export function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
+  const [listings, setListings] = useState<any[]>([]);
 
-  const filteredListings = skillListings.filter((listing) =>
+  useEffect(() => {
+    fetch('/api/listings', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => setListings(Array.isArray(data) ? data : []));
+  }, []);
+
+  const filteredListings = listings.filter((listing) =>
     listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     listing.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     listing.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const stats = [
-    { icon: BookOpen, label: 'Active Skills', value: '1,234', color: 'from-blue-500 to-blue-600' },
-    { icon: Users, label: 'Active Users', value: '5,678', color: 'from-purple-500 to-purple-600' },
-    { icon: TrendingUp, label: 'Sessions Today', value: '289', color: 'from-pink-500 to-pink-600' },
-    { icon: Star, label: 'Avg Rating', value: '4.8', color: 'from-yellow-500 to-orange-600' },
+    { icon: BookOpen,   label: 'Active Skills',    value: '1,234', color: 'from-blue-500 to-blue-600' },
+    { icon: Users,      label: 'Active Users',      value: '5,678', color: 'from-purple-500 to-purple-600' },
+    { icon: TrendingUp, label: 'Sessions Today',    value: '289',   color: 'from-pink-500 to-pink-600' },
+    { icon: Star,       label: 'Avg Rating',        value: '4.8',   color: 'from-yellow-500 to-orange-600' },
   ];
 
   return (
@@ -52,20 +58,14 @@ export function Dashboard() {
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-4 justify-center">
         <button
-          onClick={() => {
-            setModalType('offer');
-            setIsModalOpen(true);
-          }}
+          onClick={() => { setModalType('offer'); setIsModalOpen(true); }}
           className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform shadow-lg"
         >
           <Plus className="w-5 h-5" />
           <span>Post Skill</span>
         </button>
         <button
-          onClick={() => {
-            setModalType('request');
-            setIsModalOpen(true);
-          }}
+          onClick={() => { setModalType('request'); setIsModalOpen(true); }}
           className="flex items-center space-x-2 px-6 py-3 bg-white text-purple-600 rounded-xl hover:scale-105 transition-transform border-2 border-purple-300 shadow-lg"
         >
           <Search className="w-5 h-5" />
@@ -107,7 +107,9 @@ export function Dashboard() {
 
         {filteredListings.length === 0 ? (
           <div className="text-center py-12 bg-white/50 rounded-2xl">
-            <p className="text-gray-500 text-lg">No skills found matching your search.</p>
+            <p className="text-gray-500 text-lg">
+              {listings.length === 0 ? 'Loading skills...' : 'No skills found matching your search.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -140,7 +142,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Create Listing Modal */}
       <CreateListingModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
