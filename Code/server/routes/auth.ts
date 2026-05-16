@@ -7,6 +7,10 @@ authRouter.post('/login', (req: Request, res: Response) => {
   authController.login(req, res);
 });
 
+authRouter.post('/register', (req: Request, res: Response) => {
+  authController.register(req, res);
+});
+
 authRouter.post('/logout', (req: Request, res: Response) => {
   authController.logout(req, res);
 });
