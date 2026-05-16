@@ -3,5 +3,5 @@ builder = "nixpacks"
 buildCommand = "pnpm install --no-frozen-lockfile && pnpm run build"
 
 [deploy]
-startCommand = "caddy run --config /app/Caddyfile --adapter caddyfile 2>&1"
-healthcheckPath = "/"
+startCommand = "NODE_ENV=production pnpm exec tsx server/index.ts"
+healthcheckPath = "/api/auth/me"
