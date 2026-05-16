@@ -1,42 +1,35 @@
-// SessionController.ts
-// Source: UC-SCH-02
-
-import { Session, SessionStatus } from '../../src/app/types';
+import { getDb } from '../db/database.js';
 
 export class SessionController {
-  getSessions(): Session[] {
-    // TODO: fetch all sessions from database
-    console.warn('SessionController.getSessions not implemented');
-    return [];
-  }
+  async getSessionsForUser(userId: string) {
+    const db = await getDb();
+    const rows = await db.all(`
+      SELECT
+        s.id, s.skill_title, s.scheduled_at, s.status,
+        CASE WHEN s.teacher_id = ? THEN 'teaching' ELSE 'learning' END AS type,
+        CASE WHEN s.teacher_id = ? THEN u_l.name  ELSE u_t.name  END AS other_user,
+        CASE WHEN s.teacher_id = ? THEN u_l.avatar ELSE u_t.avatar END AS other_user_avatar
+      FROM sessions s
+      JOIN users u_t ON s.teacher_id = u_t.id
+      JOIN users u_l ON s.learner_id  = u_l.id
+      WHERE s.teacher_id = ? OR s.learner_id = ?
+      ORDER BY s.scheduled_at ASC
+    `, [userId, userId, userId, userId, userId]);
 
-  createSession(fields: Partial<Session>): Session | null {
-    // TODO: validate and persist new session, return created session
-    console.warn('SessionController.createSession not implemented');
-    return null;
-  }
-
-  updateStatus(sessionId: string, status: SessionStatus): Session | null {
-    // TODO: update session status in database, notify participants
-    console.warn('SessionController.updateStatus not implemented');
-    return null;
-  }
-
-  checkAvailability(date: string, time: string, userId: string): boolean {
-    // TODO: check for conflicting sessions for userId at date/time
-    console.warn('SessionController.checkAvailability not implemented');
-    return false;
-  }
-
-  saveSession(fields: Partial<Session>): string {
-    // TODO: persist session, return sessionId
-    console.warn('SessionController.saveSession not implemented');
-    return '';
-  }
-
-  handleResponse(sessionId: string, response: 'confirmed' | 'cancelled'): void {
-    // TODO: update session status, notify requester
-    console.warn('SessionController.handleResponse not implemented');
+    return rows.map((row: any) => {
+      const [date, timePart] = String(row.scheduled_at).split('T');
+      return {
+        id: row.id,
+        skillTitle: row.skill_title,
+        date,
+        time: timePart?.slice(0, 5) ?? '',
+        status: row.status,
+        type: row.type,
+        otherUser: row.other_user,
+        otherUserAvatar: row.other_user_avatar
+          ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(row.other_user)}&background=7c3aed&color=fff`,
+      };
+    });
   }
 }
 
