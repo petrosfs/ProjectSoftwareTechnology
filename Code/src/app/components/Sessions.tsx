@@ -1,33 +1,28 @@
-import { Calendar, Clock, Video, MapPin, User, MessageSquare } from 'lucide-react';
-import { upcomingSessions } from '../mockData';
+import { useState, useEffect } from 'react';
+import { Calendar, Clock, Video, MessageSquare, User } from 'lucide-react';
+
+interface Session {
+  id: string;
+  skillTitle: string;
+  otherUser: string;
+  otherUserAvatar: string;
+  date: string;
+  time: string;
+  status: string;
+  type: 'teaching' | 'learning';
+}
 
 export function Sessions() {
-  const allSessions = [
-    ...upcomingSessions,
-    {
-      id: 'session-4',
-      skillTitle: 'Digital Photography Workshop',
-      otherUser: 'James Kim',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1738566061688-47e66a008254?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMHByb2Zlc3Npb25hbCUyMGJ1c2luZXNzJTIwcGVyc29ufGVufDF8fHx8MTc3MzkzMzMzMHww&ixlib=rb-4.1.0&q=80&w=1080',
-      date: '2026-03-15',
-      time: '13:00',
-      status: 'completed' as const,
-      type: 'learning' as const,
-    },
-    {
-      id: 'session-5',
-      skillTitle: 'React Fundamentals',
-      otherUser: 'David Park',
-      otherUserAvatar: 'https://images.unsplash.com/photo-1655249481446-25d575f1c054?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBidXNpbmVzcyUyMHBlcnNvbiUyMHBvcnRyYWl0fGVufDF8fHx8MTc3MzgyODg4OXww&ixlib=rb-4.1.0&q=80&w=1080',
-      date: '2026-03-10',
-      time: '15:00',
-      status: 'completed' as const,
-      type: 'teaching' as const,
-    },
-  ];
+  const [sessions, setSessions] = useState<Session[]>([]);
 
-  const upcoming = allSessions.filter((s) => s.status === 'upcoming');
-  const completed = allSessions.filter((s) => s.status === 'completed');
+  useEffect(() => {
+    fetch('/api/sessions/mine', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setSessions(Array.isArray(data) ? data : []));
+  }, []);
+
+  const upcoming  = sessions.filter((s) => s.status === 'upcoming');
+  const completed = sessions.filter((s) => s.status === 'completed');
 
   return (
     <div className="space-y-6">
@@ -83,7 +78,6 @@ export function Sessions() {
                 className="p-6 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 hover:shadow-lg transition-all"
               >
                 <div className="flex flex-col md:flex-row md:items-center gap-6">
-                  {/* User Info */}
                   <div className="flex items-center space-x-4 flex-1">
                     <img
                       src={session.otherUserAvatar}
@@ -91,23 +85,18 @@ export function Sessions() {
                       className="w-16 h-16 rounded-2xl object-cover ring-2 ring-purple-200"
                     />
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">
-                        {session.skillTitle}
-                      </h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">{session.skillTitle}</h3>
                       <p className="text-gray-600 mb-2">with {session.otherUser}</p>
-                      <span
-                        className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${
-                          session.type === 'teaching'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}
-                      >
+                      <span className={`inline-block px-3 py-1 rounded-lg text-xs font-medium ${
+                        session.type === 'teaching'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
                         {session.type === 'teaching' ? 'Teaching' : 'Learning'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Session Details */}
                   <div className="flex flex-col space-y-2 md:min-w-[200px]">
                     <div className="flex items-center space-x-2 text-gray-700">
                       <Calendar className="w-5 h-5 text-purple-600" />
@@ -123,7 +112,6 @@ export function Sessions() {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex md:flex-col gap-2">
                     <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:scale-105 transition-transform font-semibold whitespace-nowrap">
                       <Video className="w-4 h-4" />
@@ -164,9 +152,7 @@ export function Sessions() {
                       className="w-12 h-12 rounded-xl object-cover ring-2 ring-gray-200"
                     />
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">
-                        {session.skillTitle}
-                      </h3>
+                      <h3 className="font-semibold text-gray-900">{session.skillTitle}</h3>
                       <p className="text-sm text-gray-600">with {session.otherUser}</p>
                     </div>
                   </div>
