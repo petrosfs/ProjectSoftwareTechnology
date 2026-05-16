@@ -1,14 +1,21 @@
-import { Link, Outlet, useLocation } from 'react-router';
-import { Home, Search, User, MessageSquare, Calendar, PlusCircle } from 'lucide-react';
-import { currentUser } from '../mockData';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { Home, Search, User, MessageSquare, Calendar, PlusCircle, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { CreateListingModal } from './CreateListingModal';
 import { DogLogo } from './DogLogo';
+import { useAuth } from '../context/AuthContext';
 
 export function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   const navItems = [
     { path: '/', icon: Home, label: 'Home' },
@@ -54,14 +61,26 @@ export function Layout() {
               })}
             </nav>
 
-            {/* User Avatar */}
-            <Link to="/profile" className="flex items-center space-x-3">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-200"
-              />
-            </Link>
+            {/* User Avatar + Logout */}
+            <div className="flex items-center space-x-3">
+              <Link to="/profile" className="flex items-center space-x-2">
+                <img
+                  src={user?.avatar || 'https://i.pravatar.cc/150?img=1'}
+                  alt={user?.name || 'User'}
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-200"
+                />
+                <span className="hidden md:block text-sm font-medium text-gray-700">
+                  {user?.name}
+                </span>
+              </Link>
+              <button
+                onClick={handleLogout}
+                title="Αποσύνδεση"
+                className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -82,9 +101,7 @@ export function Layout() {
                 key={item.path}
                 to={item.path}
                 className={`flex flex-col items-center justify-center space-y-1 px-3 py-2 rounded-lg transition-all ${
-                  isActive
-                    ? 'text-purple-600'
-                    : 'text-gray-600'
+                  isActive ? 'text-purple-600' : 'text-gray-600'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'fill-purple-600' : ''}`} />
@@ -96,7 +113,7 @@ export function Layout() {
       </nav>
 
       {/* Floating Action Button (Mobile) */}
-      <button 
+      <button
         onClick={() => {
           setModalType('offer');
           setIsModalOpen(true);

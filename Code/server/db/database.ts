@@ -23,3 +23,9 @@ export async function getDb(): Promise<Database> {
 
   return db;
 }
+
+export async function initDb(): Promise<void> {
+  await getDb();
+  const { seedUsers } = await import('./seed.js');
+  await seedUsers();
+}
