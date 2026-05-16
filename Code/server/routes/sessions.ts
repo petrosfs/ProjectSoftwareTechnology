@@ -3,17 +3,12 @@ import sessionController from '../controllers/SessionController.js';
 
 export const sessionsRouter = Router();
 
-sessionsRouter.get('/', (_req: Request, res: Response) => {
-  const sessions = sessionController.getSessions();
+sessionsRouter.get('/mine', async (req: Request, res: Response) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+  const sessions = await sessionController.getSessionsForUser(userId);
   res.json(sessions);
-});
-
-sessionsRouter.post('/', (req: Request, res: Response) => {
-  const session = sessionController.createSession(req.body);
-  res.status(201).json(session);
-});
-
-sessionsRouter.patch('/:id/status', (req: Request, res: Response) => {
-  const updated = sessionController.updateStatus(req.params.id, req.body.status);
-  res.json(updated);
 });
