@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, DollarSign, Star, RefreshCw, Plus } from 'lucide-react';
-import { skillListings, categories } from '../mockData';
+import { categories } from '../mockData';
 import { SkillCard } from './SkillCard';
 import { CreateListingModal } from './CreateListingModal';
 
@@ -13,28 +13,29 @@ export function Marketplace() {
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
+  const [listings, setListings] = useState<any[]>([]);
 
-  const filteredListings = skillListings.filter((listing) => {
-    // Search filter
+  useEffect(() => {
+    fetch('/api/listings', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => setListings(Array.isArray(data) ? data : []));
+  }, []);
+
+  const filteredListings = listings.filter((listing) => {
     const matchesSearch =
       listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       listing.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       listing.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      listing.userName.toLowerCase().includes(searchQuery.toLowerCase());
+      (listing.userName ?? '').toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Category filter
     const matchesCategory = selectedCategory === 'All' || listing.category === selectedCategory;
 
-    // Price filter
     const matchesPrice =
       priceFilter === 'all' ||
       (priceFilter === 'free' && !listing.price) ||
       (priceFilter === 'paid' && listing.price);
 
-    // Type filter
     const matchesType = typeFilter === 'all' || listing.type === typeFilter;
-
-    // Swap filter
     const matchesSwap = !swapFilter || listing.swapAvailable;
 
     return matchesSearch && matchesCategory && matchesPrice && matchesType && matchesSwap;
@@ -99,7 +100,6 @@ export function Marketplace() {
         {/* Advanced Filters */}
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-purple-100">
-            {/* Price Filter */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
                 <DollarSign className="w-4 h-4" />
@@ -116,7 +116,6 @@ export function Marketplace() {
               </select>
             </div>
 
-            {/* Type Filter */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
                 <Star className="w-4 h-4" />
@@ -133,7 +132,6 @@ export function Marketplace() {
               </select>
             </div>
 
-            {/* Swap Filter */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 flex items-center space-x-2">
                 <RefreshCw className="w-4 h-4" />
@@ -170,8 +168,12 @@ export function Marketplace() {
       {filteredListings.length === 0 ? (
         <div className="text-center py-16 bg-white/50 rounded-2xl">
           <Search className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500 text-xl">No skills found matching your criteria.</p>
-          <p className="text-gray-400 mt-2">Try adjusting your filters or search query.</p>
+          <p className="text-gray-500 text-xl">
+            {listings.length === 0 ? 'Loading skills...' : 'No skills found matching your criteria.'}
+          </p>
+          {listings.length > 0 && (
+            <p className="text-gray-400 mt-2">Try adjusting your filters or search query.</p>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -184,20 +186,14 @@ export function Marketplace() {
       {/* Quick Action Buttons */}
       <div className="flex flex-wrap gap-4 justify-center pt-4">
         <button
-          onClick={() => {
-            setModalType('offer');
-            setIsModalOpen(true);
-          }}
+          onClick={() => { setModalType('offer'); setIsModalOpen(true); }}
           className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform shadow-lg"
         >
           <Plus className="w-5 h-5" />
           <span>Post Skill</span>
         </button>
         <button
-          onClick={() => {
-            setModalType('request');
-            setIsModalOpen(true);
-          }}
+          onClick={() => { setModalType('request'); setIsModalOpen(true); }}
           className="flex items-center space-x-2 px-6 py-3 bg-white text-purple-600 rounded-xl hover:scale-105 transition-transform border-2 border-purple-300 shadow-lg"
         >
           <Search className="w-5 h-5" />
@@ -205,7 +201,6 @@ export function Marketplace() {
         </button>
       </div>
 
-      {/* Create Listing Modal */}
       <CreateListingModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
