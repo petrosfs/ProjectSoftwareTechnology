@@ -1,8 +1,5 @@
 import bcrypt from 'bcryptjs';
-<<<<<<< HEAD
-=======
 import { randomUUID } from 'crypto';
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
 import type { Request, Response } from 'express';
 import { getDb } from '../db/database.js';
 
@@ -41,11 +38,6 @@ export class AuthController {
       avatar: user.avatar,
       bio: user.bio,
       rating: user.rating,
-<<<<<<< HEAD
-    });
-  }
-
-=======
       reviewsCount: user.reviews_count ?? 0,
     });
   }
@@ -97,7 +89,6 @@ export class AuthController {
     });
   }
 
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
   async logout(req: Request, res: Response): Promise<void> {
     req.session.destroy(() => {
       res.json({ ok: true });
@@ -113,11 +104,7 @@ export class AuthController {
 
     const db = await getDb();
     const user = await db.get(
-<<<<<<< HEAD
-      'SELECT id, name, email, avatar, bio, rating FROM users WHERE id = ?',
-=======
       'SELECT id, name, email, avatar, bio, rating, reviews_count FROM users WHERE id = ?',
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
       userId
     );
 
@@ -126,9 +113,6 @@ export class AuthController {
       return;
     }
 
-<<<<<<< HEAD
-    res.json(user);
-=======
     res.json({
       id: user.id,
       name: user.name,
@@ -138,7 +122,6 @@ export class AuthController {
       rating: user.rating,
       reviewsCount: user.reviews_count ?? 0,
     });
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
   }
 }
 

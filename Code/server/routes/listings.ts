@@ -16,3 +16,29 @@ listingsRouter.get('/:id', async (req: Request, res: Response) => {
   }
   res.json(listing);
 });
+
+// UC-REQ-02 & UC-PST-02: post a new listing
+listingsRouter.post('/', async (req: Request, res: Response) => {
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+
+  try {
+    const { title, description, category, price, swapAvailable, type, deliveryMode } = req.body;
+    const listing = await listingController.saveListing({
+      userId,
+      title,
+      description,
+      category,
+      price: price ?? null,
+      swapAvailable: !!swapAvailable,
+      type,
+      deliveryMode,
+    });
+    res.status(201).json(listing);
+  } catch (err: any) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});

@@ -2,20 +2,12 @@ import bcrypt from 'bcryptjs';
 import { getDb } from './database.js';
 
 const SEED_USERS = [
-<<<<<<< HEAD
-  { id: 'user-1', name: 'Alice Costa', email: 'alice@skillus.com', password: 'alice123', avatar: 'https://i.pravatar.cc/150?img=1', bio: 'Web developer & musician' },
-  { id: 'user-2', name: 'Bob Marin', email: 'bob@skillus.com', password: 'bob123', avatar: 'https://i.pravatar.cc/150?img=3', bio: 'Data scientist & cook' },
-  { id: 'user-3', name: 'Carla Santos', email: 'carla@skillus.com', password: 'carla123', avatar: 'https://i.pravatar.cc/150?img=5', bio: 'Photographer & yoga teacher' },
-  { id: 'user-4', name: 'Dimitris Papadopoulos', email: 'dimitris@skillus.com', password: 'dimitris123', avatar: 'https://i.pravatar.cc/150?img=7', bio: 'Software engineer & chess player' },
-  { id: 'user-5', name: 'Elena Vasileiou', email: 'elena@skillus.com', password: 'elena123', avatar: 'https://i.pravatar.cc/150?img=9', bio: 'Marketing expert & painter' },
-  { id: 'user-6', name: 'Fanis Georgiadis', email: 'fanis@skillus.com', password: 'fanis123', avatar: 'https://i.pravatar.cc/150?img=11', bio: 'Guitar player & English teacher' },
-=======
-  { id: 'user-1', name: 'Alice Costa',             email: 'alice@skillus.com',    password: 'alice123',    avatar: 'https://i.pravatar.cc/150?img=1',  bio: 'Web developer & musician' },
-  { id: 'user-2', name: 'Bob Marin',               email: 'bob@skillus.com',      password: 'bob123',      avatar: 'https://i.pravatar.cc/150?img=3',  bio: 'Data scientist & cook' },
-  { id: 'user-3', name: 'Carla Santos',            email: 'carla@skillus.com',    password: 'carla123',    avatar: 'https://i.pravatar.cc/150?img=5',  bio: 'Photographer & yoga teacher' },
-  { id: 'user-4', name: 'Dimitris Papadopoulos',   email: 'dimitris@skillus.com', password: 'dimitris123', avatar: 'https://i.pravatar.cc/150?img=7',  bio: 'Software engineer & chess player' },
-  { id: 'user-5', name: 'Elena Vasileiou',         email: 'elena@skillus.com',    password: 'elena123',    avatar: 'https://i.pravatar.cc/150?img=9',  bio: 'Marketing expert & painter' },
-  { id: 'user-6', name: 'Fanis Georgiadis',        email: 'fanis@skillus.com',    password: 'fanis123',    avatar: 'https://i.pravatar.cc/150?img=11', bio: 'Guitar player & English teacher' },
+  { id: 'user-1', name: 'Alice Costa',           email: 'alice@skillus.com',    password: 'alice123',    avatar: 'https://i.pravatar.cc/150?img=1',  bio: 'Web developer & musician' },
+  { id: 'user-2', name: 'Bob Marin',              email: 'bob@skillus.com',      password: 'bob123',      avatar: 'https://i.pravatar.cc/150?img=3',  bio: 'Data scientist & cook' },
+  { id: 'user-3', name: 'Carla Santos',           email: 'carla@skillus.com',    password: 'carla123',    avatar: 'https://i.pravatar.cc/150?img=5',  bio: 'Photographer & yoga teacher' },
+  { id: 'user-4', name: 'Dimitris Papadopoulos',  email: 'dimitris@skillus.com', password: 'dimitris123', avatar: 'https://i.pravatar.cc/150?img=7',  bio: 'Software engineer & chess player' },
+  { id: 'user-5', name: 'Elena Vasileiou',        email: 'elena@skillus.com',    password: 'elena123',    avatar: 'https://i.pravatar.cc/150?img=9',  bio: 'Marketing expert & painter' },
+  { id: 'user-6', name: 'Fanis Georgiadis',       email: 'fanis@skillus.com',    password: 'fanis123',    avatar: 'https://i.pravatar.cc/150?img=11', bio: 'Guitar player & English teacher' },
 ];
 
 const SEED_SKILLS = [
@@ -65,14 +57,12 @@ const SEED_LISTINGS = [
 ];
 
 const SEED_SESSIONS = [
-  // Completed sessions
   { id: 'sess-c1', listing_id: 'list-8', teacher_id: 'user-6', learner_id: 'user-1', skill_title: 'Guitar for Beginners',          scheduled_at: '2026-05-01T14:00:00', status: 'completed' },
   { id: 'sess-c2', listing_id: 'list-2', teacher_id: 'user-2', learner_id: 'user-5', skill_title: 'Python Basics',                  scheduled_at: '2026-05-03T10:00:00', status: 'completed' },
   { id: 'sess-c3', listing_id: 'list-4', teacher_id: 'user-3', learner_id: 'user-4', skill_title: 'Yoga Introduction',              scheduled_at: '2026-05-05T09:00:00', status: 'completed' },
   { id: 'sess-c4', listing_id: 'list-7', teacher_id: 'user-5', learner_id: 'user-3', skill_title: 'Digital Marketing Fundamentals', scheduled_at: '2026-05-07T11:00:00', status: 'completed' },
   { id: 'sess-c5', listing_id: 'list-1', teacher_id: 'user-1', learner_id: 'user-2', skill_title: 'Web Development Basics',         scheduled_at: '2026-05-09T16:00:00', status: 'completed' },
   { id: 'sess-c6', listing_id: 'list-6', teacher_id: 'user-4', learner_id: 'user-6', skill_title: 'Chess Opening Strategy',         scheduled_at: '2026-05-11T17:00:00', status: 'completed' },
-  // Upcoming sessions
   { id: 'sess-u1', listing_id: 'list-1', teacher_id: 'user-1', learner_id: 'user-3', skill_title: 'Web Development Fundamentals',   scheduled_at: '2026-05-22T10:00:00', status: 'upcoming' },
   { id: 'sess-u2', listing_id: 'list-2', teacher_id: 'user-2', learner_id: 'user-6', skill_title: 'Python for Beginners',           scheduled_at: '2026-05-21T11:00:00', status: 'upcoming' },
   { id: 'sess-u3', listing_id: 'list-3', teacher_id: 'user-3', learner_id: 'user-2', skill_title: 'Portrait Photography',           scheduled_at: '2026-05-23T15:00:00', status: 'upcoming' },
@@ -88,15 +78,10 @@ const SEED_REVIEWS = [
   { id: 'rev-4', session_id: 'sess-c4', from_user_id: 'user-3', to_user_id: 'user-5', rating: 5, comment: "Elena's digital marketing insights are cutting-edge and immediately actionable. My project's online visibility doubled after her class!", skill_title: 'Digital Marketing', created_at: '2026-05-07' },
   { id: 'rev-5', session_id: 'sess-c5', from_user_id: 'user-2', to_user_id: 'user-1', rating: 5, comment: 'Alice is an amazing web development teacher — very patient, knowledgeable, and great at explaining complex concepts simply!', skill_title: 'Web Development', created_at: '2026-05-09' },
   { id: 'rev-6', session_id: 'sess-c6', from_user_id: 'user-6', to_user_id: 'user-4', rating: 4, comment: 'Dimitris makes chess strategy approachable and engaging. Learned more in one session than months of self-study!', skill_title: 'Chess Strategy', created_at: '2026-05-11' },
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
 ];
 
 export async function seedUsers(): Promise<void> {
   const db = await getDb();
-<<<<<<< HEAD
-
-=======
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
   for (const user of SEED_USERS) {
     const existing = await db.get('SELECT id FROM users WHERE id = ?', user.id);
     if (!existing) {
@@ -105,12 +90,6 @@ export async function seedUsers(): Promise<void> {
         'INSERT INTO users (id, name, email, password_hash, avatar, bio) VALUES (?, ?, ?, ?, ?, ?)',
         [user.id, user.name, user.email, hash, user.avatar, user.bio]
       );
-<<<<<<< HEAD
-      console.log(`Seeded: ${user.email}`);
-    }
-  }
-}
-=======
       console.log(`Seeded user: ${user.email}`);
     }
   }
@@ -163,4 +142,3 @@ export async function seedData(): Promise<void> {
     console.log('Seeded reviews');
   }
 }
->>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
