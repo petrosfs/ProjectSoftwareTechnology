@@ -12,14 +12,6 @@
 - Δεν είναι πλατφόρμα freelancing όπως Upwork.
 - Δεν παρέχει εκπαιδευτικό περιεχόμενο απευθείας, αλλά συνδέει κατόχους δεξιοτήτων με ενδιαφερόμενους.
 
-## Κύριες λειτουργίες
-- Αναζήτηση δεξιοτήτων με φίλτρα και κατηγορίες
-- Προβολή αγγελιών και λεπτομέρειες δεξιοτήτων
-- Δημιουργία νέας αγγελίας για προσφορά ή αίτημα
-- Επισήμανση "Swap Available" για ανταλλαγές δεξιοτήτων
-- Υποστήριξη αγορών και αιτημάτων ανταλλαγής
-- Προβολή προφίλ χρήστη και λίστα δεξιοτήτων
-
 ## Τεχνολογίες - Εργαλεία
 - React
 - Vite
@@ -27,25 +19,31 @@
 - Radix UI
 - React Router
 - Lucide icons
+- TypeScript
+- Express
+- SQLite
+- bcrypt
+- express-session
 - Microsoft Word
 - ClickUp (Οργάνωση task)
 - Vs Code
 - Figma
 - Railway (Hosting)
-- Express
-- TypeScript
-
-
 
 ## Δομή έργου
 - `Code/src/app/components`: React components UI
-- `Code/src/app/controllers`: placeholder controllers και επιχειρησιακή λογική
-- `Code/src/app/mockData.ts`: δείγμα δεδομένων και lista featured δεξιοτήτων
 - `Code/src/app/types.ts`: τύποι και domain model
 - `Code/public`: στατικά αρχεία assets (π.χ. `skillus-logo.png`)
 - `Code/index.html`: κεντρικό HTML αρχείο εφαρμογής
+- `Code/server/controllers`: backend controllers (Auth, Listings, Sessions, Reviews, Skills)
+- `Code/server/routes`: Express API routes
+- `Code/server/db`: βάση δεδομένων SQLite και seed δεδομένων
+- `Code/server/middleware`: middleware διαχείρισης σφαλμάτων
 
-Το hosting της πλαφόρμας γίνεται στο Railway και υπάρχει πρόσβαση στους χρήστες μέσω της παρακάτω διεύθυνσης https://projectsoftwaretechnology-production.up.railway.app
+Το hosting της πλατφόρμας γίνεται στο Railway και υπάρχει πρόσβαση στους χρήστες μέσω της παρακάτω διεύθυνσης https://projectsoftwaretechnology-production.up.railway.app
+
+## Demo λογαριασμοί
+Διαθέσιμοι λογαριασμοί δοκιμής στο αρχείο `demo_credentials.txt`.
 
 ## Ομάδα έργου
 - Αγγελής Γιώργος — Contributor, Peer Reviewer
@@ -65,5 +63,11 @@
 Η βασική περιγραφή του έργου και οι use cases βρίσκονται στο αρχείο:
 `Παραδοτέο 1/SkillUs_Project-description-v0.1.docx`
 
-## Σημείωση
-Το README αυτό έχει γραφτεί σύμφωνα με τις οδηγίες του τεχνικού κειμένου του project και την αρχική ιδέα για την πλατφόρμα SkillUs.
+## Κύριες λειτουργίες
+- Αναζήτηση δεξιοτήτων με φίλτρα και κατηγορίες
+- Προβολή αγγελιών και λεπτομέρειες δεξιοτήτων
+- Δημιουργία νέας αγγελίας για προσφορά ή αίτημα
+- Επισήμανση "Swap Available" για ανταλλαγές δεξιοτήτων
+- Εγγραφή και σύνδεση χρηστών με session-based authentication
+- Προβολή προφίλ χρήστη με δεξιότητες, αξιολογήσεις και sessions
+- Προβολή και διαχείριση προγραμματισμένων συνεδριών

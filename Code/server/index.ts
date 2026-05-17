@@ -32,12 +32,19 @@ app.use(
   })
 );
 
+<<<<<<< HEAD
+=======
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
+>>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d
 app.use('/api', apiRouter);
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve(__dirname, '../dist');
   app.use(express.static(distPath));
-  app.get('*', (_req, res) => {
+  app.get('{*path}', (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }

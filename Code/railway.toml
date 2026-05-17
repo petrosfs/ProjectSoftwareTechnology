@@ -4,4 +4,8 @@ buildCommand = "pnpm install --no-frozen-lockfile && pnpm run build"
 
 [deploy]
 startCommand = "NODE_ENV=production pnpm exec tsx server/index.ts"
+<<<<<<< HEAD
 healthcheckPath = "/api/auth/me"
+=======
+healthcheckPath = "/api/health"
+>>>>>>> f67aca91421af639ad70def22bc036f1eb11c90d

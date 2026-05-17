@@ -1,37 +1,47 @@
-// ListingController.ts
-// Source: UC-REQ-02, UC-PST-02
-
-import { Listing, ListingType } from '../../src/app/types';
+import { getDb } from '../db/database.js';
 
 export class ListingController {
-  getListings(): Listing[] {
-    // TODO: fetch all active listings from database
-    console.warn('ListingController.getListings not implemented');
-    return [];
+  async getListings() {
+    const db = await getDb();
+    const rows = await db.all(`
+      SELECT l.id, l.title, l.description, l.category, l.price,
+             l.swap_available, l.type, l.created_at, l.user_id,
+             u.name AS user_name, u.avatar AS user_avatar, u.rating AS user_rating
+      FROM listings l
+      JOIN users u ON l.user_id = u.id
+      ORDER BY l.created_at DESC
+    `);
+    return rows.map(this.mapRow);
   }
 
-  getListing(listingId: string): Listing | null {
-    // TODO: fetch single listing by id from database
-    console.warn('ListingController.getListing not implemented');
-    return null;
+  async getListing(id: string) {
+    const db = await getDb();
+    const row = await db.get(`
+      SELECT l.id, l.title, l.description, l.category, l.price,
+             l.swap_available, l.type, l.created_at, l.user_id,
+             u.name AS user_name, u.avatar AS user_avatar, u.rating AS user_rating
+      FROM listings l
+      JOIN users u ON l.user_id = u.id
+      WHERE l.id = ?
+    `, id);
+    return row ? this.mapRow(row) : null;
   }
 
-  postListing(fields: Partial<Listing>): Listing | null {
-    // TODO: validate and persist new listing, return created listing
-    console.warn('ListingController.postListing not implemented');
-    return null;
-  }
-
-  saveListing(type: ListingType, fields: Partial<Listing>): string {
-    // TODO: persist listing to backend, return listingId
-    console.warn('ListingController.saveListing not implemented');
-    return '';
-  }
-
-  validateFields(fields: Partial<Listing>): boolean {
-    // TODO: validate title, description, category, budget
-    console.warn('ListingController.validateFields not implemented');
-    return false;
+  private mapRow(row: any) {
+    return {
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      category: row.category,
+      price: row.price,
+      swapAvailable: !!row.swap_available,
+      type: row.type,
+      createdAt: row.created_at,
+      userId: row.user_id,
+      userName: row.user_name,
+      userAvatar: row.user_avatar,
+      userRating: row.user_rating,
+    };
   }
 }
 
