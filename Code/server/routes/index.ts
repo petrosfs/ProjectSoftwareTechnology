@@ -3,6 +3,13 @@ import { authRouter } from './auth.js';
 import { listingsRouter } from './listings.js';
 import { sessionsRouter } from './sessions.js';
 import { usersRouter } from './users.js';
+import { profileRouter } from './profile.js';
+import { mySkillsRouter } from './myskills.js';
+import { paymentsRouter } from './payments.js';
+import { offersRouter } from './offers.js';
+import { searchRouter } from './search.js';
+import { swapsRouter } from './swaps.js';
+import { reviewsRouter } from './reviews.js';
 
 export const apiRouter = Router();
 
@@ -10,3 +17,10 @@ apiRouter.use('/auth', authRouter);
 apiRouter.use('/listings', listingsRouter);
 apiRouter.use('/sessions', sessionsRouter);
 apiRouter.use('/users', usersRouter);
+apiRouter.use('/profile', profileRouter);
+apiRouter.use('/myskills', mySkillsRouter);
+apiRouter.use('/payments', paymentsRouter);
+apiRouter.use('/offers', offersRouter);
+apiRouter.use('/search', searchRouter);
+apiRouter.use('/swaps', swapsRouter);
+apiRouter.use('/reviews', reviewsRouter);
