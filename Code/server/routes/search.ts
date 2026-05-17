@@ -3,6 +3,17 @@ import searchController from '../controllers/SearchController.js';
 
 export const searchRouter = Router();
 
+// UC-SRC-02: autocomplete suggestions (must be before /:id to avoid route conflict)
+searchRouter.get('/suggestions', async (req: Request, res: Response) => {
+  const keyword = String(req.query.q ?? '').trim();
+  if (!keyword) {
+    res.json([]);
+    return;
+  }
+  const suggestions = await searchController.getSuggestions(keyword);
+  res.json(suggestions);
+});
+
 // UC-SRC-02: search listings by keyword
 searchRouter.get('/', async (req: Request, res: Response) => {
   const keyword = String(req.query.q ?? '').trim();
@@ -28,15 +39,4 @@ searchRouter.get('/:id', async (req: Request, res: Response) => {
     return;
   }
   res.json(detail);
-});
-
-// UC-SRC-02: autocomplete suggestions
-searchRouter.get('/suggestions', async (req: Request, res: Response) => {
-  const keyword = String(req.query.q ?? '').trim();
-  if (!keyword) {
-    res.json([]);
-    return;
-  }
-  const suggestions = await searchController.getSuggestions(keyword);
-  res.json(suggestions);
 });

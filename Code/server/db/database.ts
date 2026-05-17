@@ -8,6 +8,68 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let db: Database | null = null;
 
+async function runMigrations(db: Database): Promise<void> {
+  const hasColumn = async (table: string, col: string): Promise<boolean> => {
+    const cols = await db.all(`PRAGMA table_info(${table})`);
+    return cols.some((c: any) => c.name === col);
+  };
+
+  // Add missing columns to existing tables
+  if (!(await hasColumn('listings', 'delivery_mode'))) {
+    await db.exec(`ALTER TABLE listings ADD COLUMN delivery_mode TEXT DEFAULT 'online'`);
+    console.log('Migration: added delivery_mode to listings');
+  }
+  if (!(await hasColumn('sessions', 'duration_minutes'))) {
+    await db.exec(`ALTER TABLE sessions ADD COLUMN duration_minutes INTEGER DEFAULT 60`);
+    console.log('Migration: added duration_minutes to sessions');
+  }
+  if (!(await hasColumn('sessions', 'delivery_mode'))) {
+    await db.exec(`ALTER TABLE sessions ADD COLUMN delivery_mode TEXT DEFAULT 'online'`);
+    console.log('Migration: added delivery_mode to sessions');
+  }
+  if (!(await hasColumn('offers', 'to_user_id'))) {
+    await db.exec(`ALTER TABLE offers ADD COLUMN to_user_id TEXT REFERENCES users(id)`);
+    console.log('Migration: added to_user_id to offers');
+  }
+
+  // Recreate sessions table if the old CHECK constraint doesn't include 'pending'/'confirmed'
+  const sessionsInfo = await db.get(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name='sessions'"
+  );
+  if (sessionsInfo?.sql && !sessionsInfo.sql.includes("'pending'")) {
+    await db.exec('PRAGMA foreign_keys = OFF');
+    await db.exec(`
+      CREATE TABLE sessions_new (
+        id TEXT PRIMARY KEY,
+        listing_id TEXT REFERENCES listings(id) ON DELETE SET NULL,
+        teacher_id TEXT NOT NULL REFERENCES users(id),
+        learner_id TEXT NOT NULL REFERENCES users(id),
+        skill_title TEXT NOT NULL,
+        scheduled_at TEXT NOT NULL,
+        duration_minutes INTEGER DEFAULT 60,
+        delivery_mode TEXT DEFAULT 'online',
+        status TEXT CHECK(status IN ('pending', 'confirmed', 'upcoming', 'completed', 'cancelled')) DEFAULT 'pending',
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await db.exec(`
+      INSERT INTO sessions_new
+        (id, listing_id, teacher_id, learner_id, skill_title, scheduled_at,
+         duration_minutes, delivery_mode, status, created_at)
+      SELECT
+        id, listing_id, teacher_id, learner_id, skill_title, scheduled_at,
+        COALESCE(duration_minutes, 60),
+        COALESCE(delivery_mode, 'online'),
+        status, created_at
+      FROM sessions
+    `);
+    await db.exec('DROP TABLE sessions');
+    await db.exec('ALTER TABLE sessions_new RENAME TO sessions');
+    await db.exec('PRAGMA foreign_keys = ON');
+    console.log('Migration: sessions table updated with pending/confirmed statuses');
+  }
+}
+
 export async function getDb(): Promise<Database> {
   if (db) return db;
 
@@ -20,6 +82,8 @@ export async function getDb(): Promise<Database> {
 
   const schema = readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   await db.exec(schema);
+
+  await runMigrations(db);
 
   return db;
 }
