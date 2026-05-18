@@ -74,6 +74,20 @@ async function runMigrations(db: Database): Promise<void> {
     console.log('Migration: added initiated_by_id to sessions');
   }
 
+  // Create connections table for existing DBs
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS connections (
+      id TEXT PRIMARY KEY,
+      user1_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user2_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      skill_title TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      status TEXT DEFAULT 'awaiting_schedule',
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Create conversations + messages tables for existing DBs
   await db.exec(`
     CREATE TABLE IF NOT EXISTS conversations (

@@ -11,6 +11,8 @@ import { searchRouter } from './search.js';
 import { swapsRouter } from './swaps.js';
 import { reviewsRouter } from './reviews.js';
 import { messagesRouter } from './messages.js';
+import { connectionsRouter } from './connections.js';
+import { notificationsRouter } from './notifications.js';
 
 export const apiRouter = Router();
 
@@ -26,3 +28,5 @@ apiRouter.use('/search', searchRouter);
 apiRouter.use('/swaps', swapsRouter);
 apiRouter.use('/reviews', reviewsRouter);
 apiRouter.use('/messages', messagesRouter);
+apiRouter.use('/connections', connectionsRouter);
+apiRouter.use('/notifications', notificationsRouter);

@@ -26,6 +26,14 @@ interface UserResult {
   avatar: string | null;
 }
 
+interface Connection {
+  id: string;
+  skillTitle: string;
+  sourceType: 'offer' | 'swap';
+  createdAt: string;
+  otherUser: { id: string; name: string; avatar: string };
+}
+
 // ── Leave Review Modal ──────────────────────────────────────────────────────
 function LeaveReviewModal({
   session,
@@ -168,12 +176,22 @@ function LeaveReviewModal({
 }
 
 // ── Schedule New Modal ──────────────────────────────────────────────────────
-function ScheduleModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [myRole, setMyRole] = useState<'teaching' | 'learning'>('teaching');
-  const [userQuery, setUserQuery] = useState('');
+function ScheduleModal({
+  onClose,
+  onCreated,
+  initialUser,
+  initialSkill,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+  initialUser?: { id: string; name: string; email: string; avatar: string | null };
+  initialSkill?: string;
+}) {
+  const [myRole, setMyRole] = useState<'teaching' | 'learning'>('learning');
+  const [userQuery, setUserQuery] = useState(initialUser?.name ?? '');
   const [userResults, setUserResults] = useState<UserResult[]>([]);
-  const [selectedUser, setSelectedUser] = useState<UserResult | null>(null);
-  const [skillTitle, setSkillTitle] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserResult | null>(initialUser ?? null);
+  const [skillTitle, setSkillTitle] = useState(initialSkill ?? '');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [duration, setDuration] = useState(60);
@@ -510,6 +528,8 @@ export function Sessions() {
   const [successMsg, setSuccessMsg] = useState('');
   const [reviewTarget, setReviewTarget] = useState<Session | null>(null);
   const [reviewedSessions, setReviewedSessions] = useState<Set<string>>(new Set());
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [scheduleFromConnection, setScheduleFromConnection] = useState<Connection | null>(null);
 
   const fetchSessions = useCallback(async () => {
     const res = await fetch('/api/sessions/mine', { credentials: 'include' });
@@ -517,7 +537,12 @@ export function Sessions() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+  const fetchConnections = useCallback(async () => {
+    const res = await fetch('/api/connections', { credentials: 'include' });
+    if (res.ok) setConnections(await res.json());
+  }, []);
+
+  useEffect(() => { fetchSessions(); fetchConnections(); }, [fetchSessions, fetchConnections]);
 
   // Sessions that need MY response (pending, other user initiated)
   const actionRequired = sessions.filter(s =>
@@ -559,6 +584,11 @@ export function Sessions() {
 
   const goToMessages = (otherUserId: string) => {
     navigate(`/messages?userId=${otherUserId}`);
+  };
+
+  const dismissConnection = async (connectionId: string) => {
+    await fetch(`/api/connections/${connectionId}`, { method: 'DELETE', credentials: 'include' });
+    setConnections(prev => prev.filter(c => c.id !== connectionId));
   };
 
   const handleLeaveReview = async (session: Session) => {
@@ -679,6 +709,68 @@ export function Sessions() {
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       Message
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Connections to Schedule ── */}
+      {connections.length > 0 && (
+        <div className="bg-gradient-to-br from-green-50 to-teal-50 border border-green-200 rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <Calendar className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-green-800">Schedule Your Sessions ({connections.length})</h2>
+              <p className="text-sm text-green-600">You have new connections waiting to be scheduled</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {connections.map(conn => (
+              <div key={conn.id} className="bg-white rounded-xl p-4 border border-green-100 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                  <div className="flex items-center gap-3 flex-1">
+                    <Avatar name={conn.otherUser.name} src={conn.otherUser.avatar} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-gray-900 truncate">{conn.skillTitle}</h3>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          conn.sourceType === 'offer'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {conn.sourceType === 'offer' ? 'Purchase' : 'Swap'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">with <strong>{conn.otherUser.name}</strong></p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setScheduleFromConnection(conn)}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold text-sm"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Schedule Now
+                    </button>
+                    <button
+                      onClick={() => goToMessages(conn.otherUser.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border-2 border-purple-200 rounded-lg hover:bg-purple-50 transition-colors font-semibold text-sm"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Message
+                    </button>
+                    <button
+                      onClick={() => dismissConnection(conn.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-gray-400 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      title="Dismiss"
+                    >
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -853,6 +945,24 @@ export function Sessions() {
           onCreated={() => {
             setShowSchedule(false);
             setSuccessMsg('Session request sent! The other user will be notified.');
+            fetchSessions();
+          }}
+        />
+      )}
+      {scheduleFromConnection && (
+        <ScheduleModal
+          onClose={() => setScheduleFromConnection(null)}
+          initialUser={{
+            id: scheduleFromConnection.otherUser.id,
+            name: scheduleFromConnection.otherUser.name,
+            email: '',
+            avatar: scheduleFromConnection.otherUser.avatar ?? null,
+          }}
+          initialSkill={scheduleFromConnection.skillTitle}
+          onCreated={() => {
+            dismissConnection(scheduleFromConnection.id);
+            setScheduleFromConnection(null);
+            setSuccessMsg('Session scheduled! The other user will be notified.');
             fetchSessions();
           }}
         />

@@ -3,6 +3,14 @@ import offerController from '../controllers/OfferController.js';
 
 export const offersRouter = Router();
 
+// UC-BUY-02: list pending offers received (as seller)
+offersRouter.get('/received', async (req: Request, res: Response) => {
+  const userId = req.session.userId;
+  if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const offers = await offerController.getReceived(userId);
+  res.json(offers);
+});
+
 // UC-BUY-02: send a purchase offer for a listing
 offersRouter.post('/', async (req: Request, res: Response) => {
   const userId = req.session.userId;

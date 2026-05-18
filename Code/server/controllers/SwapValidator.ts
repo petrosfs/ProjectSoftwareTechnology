@@ -1,6 +1,7 @@
 // UC-SWP-02: Request Skill Swap
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/database.js';
+import connectionController from './ConnectionController.js';
 
 export class SwapValidator {
   // UC-SWP-02: confirm offered skill belongs to requester
@@ -62,6 +63,64 @@ export class SwapValidator {
     await this.notifyRecipient(data.responderId, id);
 
     return { id, status: 'pending' };
+  }
+
+  // UC-SWP-02: list pending swaps received by current user (as responder)
+  async getReceived(responderId: string) {
+    const db = await getDb();
+    const rows = await db.all(`
+      SELECT sw.id, sw.message, sw.status, sw.created_at,
+             s.name AS offered_skill_name, s.level AS offered_skill_level,
+             l.title AS target_listing_title,
+             u.id AS requester_id, u.name AS requester_name, u.avatar AS requester_avatar
+      FROM swaps sw
+      JOIN skills s ON sw.offered_skill_id = s.id
+      JOIN listings l ON sw.target_skill_id = l.id
+      JOIN users u ON sw.requester_id = u.id
+      WHERE sw.responder_id = ? AND sw.status = 'pending'
+      ORDER BY sw.created_at DESC
+    `, responderId);
+
+    return rows.map((row: any) => ({
+      id: row.id,
+      offeredSkillName: row.offered_skill_name,
+      offeredSkillLevel: row.offered_skill_level,
+      targetListingTitle: row.target_listing_title,
+      message: row.message,
+      createdAt: row.created_at,
+      requester: {
+        id: row.requester_id,
+        name: row.requester_name,
+        avatar: row.requester_avatar
+          ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(row.requester_name)}&background=7c3aed&color=fff`,
+      },
+    }));
+  }
+
+  // UC-SWP-02: responder accepts or rejects a swap
+  async handleDecision(swapId: string, responderId: string, decision: 'accepted' | 'rejected') {
+    const db = await getDb();
+    const swap = await db.get(
+      'SELECT id, requester_id FROM swaps WHERE id = ? AND responder_id = ?',
+      [swapId, responderId]
+    );
+    if (!swap) throw Object.assign(new Error('Swap not found or not authorized'), { status: 404 });
+    await db.run('UPDATE swaps SET status = ? WHERE id = ?', [decision, swapId]);
+
+    // Notify requester of outcome
+    const msg = decision === 'accepted'
+      ? 'Το αίτημα ανταλλαγής σου έγινε αποδεκτό!'
+      : 'Το αίτημα ανταλλαγής σου απορρίφθηκε.';
+    await db.run(
+      `INSERT INTO notifications (id, user_id, type, reference_id, body) VALUES (?, ?, 'in-app', ?, ?)`,
+      [randomUUID(), swap.requester_id, swapId, msg]
+    );
+
+    if (decision === 'accepted') {
+      await connectionController.createFromSwap(swapId);
+    }
+
+    return { id: swapId, status: decision };
   }
 
   private async notifyRecipient(responderId: string, swapId: string) {

@@ -13,7 +13,7 @@ export function Marketplace() {
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<import('../types').SkillListing[]>([]);
 
   useEffect(() => {
     fetch('/api/listings', { credentials: 'include' })

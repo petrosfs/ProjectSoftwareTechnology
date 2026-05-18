@@ -184,6 +184,22 @@ export interface Message {
   isRead: boolean;
 }
 
+export interface SkillListing {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  price: number | null;
+  swapAvailable: boolean;
+  type: 'offer' | 'request';
+  deliveryMode: string;
+  createdAt: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  userRating: number;
+}
+
 export interface Notification {
   notificationId: string;
   userId: string;
