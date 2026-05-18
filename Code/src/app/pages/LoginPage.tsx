@@ -107,8 +107,31 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-center justify-center p-4">
+
+      {/* Decorative background blobs */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-purple-600 opacity-25 blur-[120px]" />
+        <div className="absolute -top-20 -right-20 w-[360px] h-[360px] rounded-full bg-blue-500 opacity-20 blur-[100px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full bg-pink-600 opacity-15 blur-[130px]" />
+        <div className="absolute -bottom-20 right-1/4 w-[320px] h-[320px] rounded-full bg-indigo-500 opacity-20 blur-[100px]" />
+      </div>
+
+      {/* Subtle dot grid overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+
+      {/* Floating brand tagline */}
+      <div className="pointer-events-none absolute top-8 left-1/2 -translate-x-1/2 text-white/20 text-sm font-medium tracking-widest uppercase select-none">
+        Share Skills · Grow Together
+      </div>
+
+      <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-md p-8 relative z-10 ring-1 ring-white/20">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-3">
