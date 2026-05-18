@@ -52,6 +52,38 @@ export class MySkillsController {
     return { id, userId, name: data.name.trim(), level: data.level, yearsOfExperience: data.yearsOfExperience ?? 0 };
   }
 
+  async updateSkill(userId: string, skillId: string, data: {
+    name?: string;
+    level?: string;
+    yearsOfExperience?: number;
+  }) {
+    const db = await getDb();
+    const skill = await db.get('SELECT id FROM skills WHERE id = ? AND user_id = ?', [skillId, userId]);
+    if (!skill) throw Object.assign(new Error('Skill not found'), { status: 404 });
+
+    if (data.name) {
+      const dup = await db.get(
+        'SELECT id FROM skills WHERE user_id = ? AND LOWER(name) = LOWER(?) AND id != ?',
+        [userId, data.name, skillId]
+      );
+      if (dup) throw Object.assign(new Error('Skill already exists in your profile'), { status: 409 });
+    }
+
+    const updates: string[] = [];
+    const values: any[] = [];
+    if (data.name) { updates.push('name = ?'); values.push(data.name.trim()); }
+    if (data.level) { updates.push('level = ?'); values.push(data.level); }
+    if (data.yearsOfExperience !== undefined) { updates.push('years_of_experience = ?'); values.push(data.yearsOfExperience); }
+
+    if (updates.length > 0) {
+      values.push(skillId);
+      await db.run(`UPDATE skills SET ${updates.join(', ')} WHERE id = ?`, values);
+    }
+
+    const updated = await db.get('SELECT id, user_id, name, level, years_of_experience FROM skills WHERE id = ?', skillId);
+    return { id: updated.id, userId: updated.user_id, name: updated.name, level: updated.level, yearsOfExperience: updated.years_of_experience };
+  }
+
   async deleteSkill(userId: string, skillId: string): Promise<void> {
     const db = await getDb();
     await db.run('DELETE FROM skills WHERE id = ? AND user_id = ?', [skillId, userId]);
