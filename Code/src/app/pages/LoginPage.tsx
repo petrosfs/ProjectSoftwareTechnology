@@ -5,6 +5,15 @@ import { DogLogo } from '../components/DogLogo';
 
 type Mode = 'login' | 'signup';
 
+// Printable ASCII only (space through tilde) — excludes Greek, Cyrillic, etc.
+const PRINTABLE_ASCII = /[^\x20-\x7E]/g;
+// For name: letters, spaces, hyphens, apostrophes only
+const NAME_ALLOWED = /[^a-zA-Z\s\-'.]/g;
+
+function hasNonLatin(value: string): boolean {
+  return PRINTABLE_ASCII.test(value);
+}
+
 export function LoginPage() {
   const { login, signup } = useAuth();
   const navigate = useNavigate();
@@ -15,15 +24,42 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [nameError, setNameError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const switchMode = (next: Mode) => {
     setMode(next);
     setError('');
+    setNameError('');
     setName('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+  };
+
+  // Strip non-Latin characters from name and warn inline
+  const handleNameChange = (val: string) => {
+    const filtered = val.replace(NAME_ALLOWED, '');
+    setName(filtered);
+    if (val !== filtered) {
+      setNameError('Επιτρέπονται μόνο λατινικοί χαρακτήρες (a–z, A–Z)');
+    } else {
+      setNameError('');
+    }
+  };
+
+  // Strip non-ASCII from email as the user types
+  const handleEmailChange = (val: string) => {
+    setEmail(val.replace(PRINTABLE_ASCII, ''));
+  };
+
+  // Strip non-printable-ASCII from password fields
+  const handlePasswordChange = (val: string) => {
+    setPassword(val.replace(PRINTABLE_ASCII, ''));
+  };
+
+  const handleConfirmPasswordChange = (val: string) => {
+    setConfirmPassword(val.replace(PRINTABLE_ASCII, ''));
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -31,6 +67,19 @@ export function LoginPage() {
     setError('');
 
     if (mode === 'signup') {
+      // Latin-only validation (final guard in case something slipped through)
+      if (hasNonLatin(name)) {
+        setError('Το ονοματεπώνυμο πρέπει να περιέχει μόνο λατινικούς χαρακτήρες');
+        return;
+      }
+      if (hasNonLatin(email)) {
+        setError('Το email πρέπει να περιέχει μόνο λατινικούς χαρακτήρες');
+        return;
+      }
+      if (hasNonLatin(password)) {
+        setError('Ο κωδικός πρέπει να περιέχει μόνο λατινικούς χαρακτήρες');
+        return;
+      }
       if (password !== confirmPassword) {
         setError('Οι κωδικοί δεν ταιριάζουν');
         return;
@@ -112,12 +161,19 @@ export function LoginPage() {
                 id="name"
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 required
                 autoComplete="name"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
-                placeholder="Γιώργος Παπαδόπουλος"
+                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                  nameError
+                    ? 'border-red-400 focus:ring-red-300'
+                    : 'border-gray-200 focus:ring-purple-400'
+                }`}
+                placeholder="George Papadopoulos"
               />
+              {nameError && (
+                <p className="mt-1 text-xs text-red-500">{nameError}</p>
+              )}
             </div>
           )}
 
@@ -129,7 +185,7 @@ export function LoginPage() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
               required
               autoComplete="email"
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
@@ -145,7 +201,7 @@ export function LoginPage() {
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => handlePasswordChange(e.target.value)}
               required
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
@@ -162,7 +218,7 @@ export function LoginPage() {
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => handleConfirmPasswordChange(e.target.value)}
                 required
                 autoComplete="new-password"
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition"
@@ -175,6 +231,12 @@ export function LoginPage() {
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
               {error}
             </div>
+          )}
+
+          {mode === 'signup' && (
+            <p className="text-xs text-gray-400">
+              Όλα τα πεδία δέχονται μόνο λατινικούς χαρακτήρες (a–z, A–Z).
+            </p>
           )}
 
           <button
