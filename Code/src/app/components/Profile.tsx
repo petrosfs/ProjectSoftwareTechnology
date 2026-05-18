@@ -386,6 +386,10 @@ export function Profile() {
   };
 
   useEffect(() => {
+    refreshUser();
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
 
     fetchSkills();

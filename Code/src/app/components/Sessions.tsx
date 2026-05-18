@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, Video, MessageSquare, User, Plus, Search,
-         Check, X, RefreshCw, AlertCircle, Loader2, MapPin } from 'lucide-react';
+         Check, X, RefreshCw, AlertCircle, Loader2, MapPin, Star } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +24,147 @@ interface UserResult {
   name: string;
   email: string;
   avatar: string | null;
+}
+
+// ── Leave Review Modal ──────────────────────────────────────────────────────
+function LeaveReviewModal({
+  session,
+  onClose,
+  onSubmitted,
+}: {
+  session: Session;
+  onClose: () => void;
+  onSubmitted: (sessionId: string) => void;
+}) {
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
+
+  const handleSubmit = async () => {
+    if (rating === 0) { setError('Please select a rating'); return; }
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          sessionId: session.id,
+          revieweeId: session.otherUserId,
+          rating,
+          comment: comment.trim(),
+          skillTitle: session.skillTitle,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to submit review'); return; }
+      onSubmitted(session.id);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900">Leave a Review</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Session info */}
+          <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
+            <Avatar name={session.otherUser} src={session.otherUserAvatar} size="sm" />
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">{session.skillTitle}</p>
+              <p className="text-xs text-gray-500">with {session.otherUser} · {session.date}</p>
+            </div>
+          </div>
+
+          {/* Star rating */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-3 text-center">
+              How was your experience? <span className="text-red-500">*</span>
+            </p>
+            <div className="flex gap-2 justify-center">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className="transition-transform hover:scale-110 focus:outline-none"
+                >
+                  <Star
+                    className={`w-10 h-10 transition-colors ${
+                      star <= (hoverRating || rating)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-200 fill-gray-200'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <p className={`text-center text-sm font-medium mt-2 h-5 transition-colors ${
+              hoverRating || rating ? 'text-purple-600' : 'text-transparent'
+            }`}>
+              {LABELS[hoverRating || rating]}
+            </p>
+          </div>
+
+          {/* Comment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Comment <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder="Share your experience with this teacher…"
+              rows={3}
+              maxLength={500}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm resize-none"
+            />
+            <p className="text-xs text-gray-400 text-right mt-0.5">{comment.length}/500</p>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-6 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={rating === 0 || submitting}
+            className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {submitting
+              ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting…</>
+              : <><Star className="w-4 h-4" />Submit Review</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Schedule New Modal ──────────────────────────────────────────────────────
@@ -367,6 +508,8 @@ export function Sessions() {
   const [responding, setResponding] = useState<Record<string, boolean>>({});
   const [cancelling, setCancelling] = useState<Record<string, boolean>>({});
   const [successMsg, setSuccessMsg] = useState('');
+  const [reviewTarget, setReviewTarget] = useState<Session | null>(null);
+  const [reviewedSessions, setReviewedSessions] = useState<Set<string>>(new Set());
 
   const fetchSessions = useCallback(async () => {
     const res = await fetch('/api/sessions/mine', { credentials: 'include' });
@@ -416,6 +559,18 @@ export function Sessions() {
 
   const goToMessages = (otherUserId: string) => {
     navigate(`/messages?userId=${otherUserId}`);
+  };
+
+  const handleLeaveReview = async (session: Session) => {
+    const res = await fetch(`/api/reviews/permission/${session.id}`, { credentials: 'include' });
+    if (res.ok) {
+      const { allowed, reason } = await res.json();
+      if (allowed) {
+        setReviewTarget(session);
+      } else if (reason === 'reviewAlreadyExists') {
+        setReviewedSessions(prev => new Set(prev).add(session.id));
+      }
+    }
   };
 
   const totalUpcoming = upcoming.length + waitingOn.length;
@@ -667,9 +822,22 @@ export function Sessions() {
                       <MessageSquare className="w-3.5 h-3.5" />
                       Message
                     </button>
-                    <button className="px-4 py-2 text-purple-600 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors text-sm font-semibold whitespace-nowrap">
-                      Leave Review
-                    </button>
+                    {session.type === 'learning' && (
+                      reviewedSessions.has(session.id) ? (
+                        <span className="flex items-center gap-1 px-4 py-2 text-green-600 border border-green-200 rounded-lg bg-green-50 text-sm font-semibold whitespace-nowrap">
+                          <Check className="w-3.5 h-3.5" />
+                          Reviewed
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleLeaveReview(session)}
+                          className="flex items-center gap-1.5 px-4 py-2 text-purple-600 border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors text-sm font-semibold whitespace-nowrap"
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                          Leave Review
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -691,6 +859,17 @@ export function Sessions() {
       )}
       {rescheduleTarget && (
         <RescheduleModal session={rescheduleTarget} onClose={() => setRescheduleTarget(null)} />
+      )}
+      {reviewTarget && (
+        <LeaveReviewModal
+          session={reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          onSubmitted={sessionId => {
+            setReviewedSessions(prev => new Set(prev).add(sessionId));
+            setReviewTarget(null);
+            setSuccessMsg('Review submitted! Thank you for your feedback.');
+          }}
+        />
       )}
     </div>
   );

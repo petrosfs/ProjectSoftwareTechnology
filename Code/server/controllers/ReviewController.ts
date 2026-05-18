@@ -65,7 +65,7 @@ export class ReviewController {
       throw Object.assign(new Error(permission.reason ?? 'Permission denied'), { status: 403 });
     }
 
-    if (!this.checkContent(data.comment)) {
+    if (data.comment && !this.checkContent(data.comment)) {
       throw Object.assign(new Error('Comment contains inappropriate content'), { status: 422 });
     }
 
