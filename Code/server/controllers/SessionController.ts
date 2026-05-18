@@ -1,22 +1,25 @@
 // UC-SCH-02: Schedule Teaching Session + existing session retrieval
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/database.js';
+import messagesController from './MessagesController.js';
 
 export class SessionController {
   async getSessionsForUser(userId: string) {
     const db = await getDb();
     const rows = await db.all(`
       SELECT
-        s.id, s.skill_title, s.scheduled_at, s.status, s.duration_minutes, s.delivery_mode,
+        s.id, s.skill_title, s.scheduled_at, s.status,
+        s.duration_minutes, s.delivery_mode, s.initiated_by_id,
         CASE WHEN s.teacher_id = ? THEN 'teaching' ELSE 'learning' END AS type,
-        CASE WHEN s.teacher_id = ? THEN u_l.name   ELSE u_t.name   END AS other_user,
-        CASE WHEN s.teacher_id = ? THEN u_l.avatar  ELSE u_t.avatar  END AS other_user_avatar
+        CASE WHEN s.teacher_id = ? THEN s.learner_id  ELSE s.teacher_id  END AS other_user_id,
+        CASE WHEN s.teacher_id = ? THEN u_l.name      ELSE u_t.name      END AS other_user,
+        CASE WHEN s.teacher_id = ? THEN u_l.avatar    ELSE u_t.avatar    END AS other_user_avatar
       FROM sessions s
       JOIN users u_t ON s.teacher_id = u_t.id
       JOIN users u_l ON s.learner_id  = u_l.id
-      WHERE s.teacher_id = ? OR s.learner_id = ?
+      WHERE (s.teacher_id = ? OR s.learner_id = ?) AND s.status != 'cancelled'
       ORDER BY s.scheduled_at ASC
-    `, [userId, userId, userId, userId, userId]);
+    `, [userId, userId, userId, userId, userId, userId]);
 
     return rows.map((row: any) => {
       const [date, timePart] = String(row.scheduled_at).split('T');
@@ -29,6 +32,8 @@ export class SessionController {
         type: row.type,
         durationMinutes: row.duration_minutes,
         deliveryMode: row.delivery_mode,
+        initiatedById: row.initiated_by_id ?? null,
+        otherUserId: row.other_user_id,
         otherUser: row.other_user,
         otherUserAvatar: row.other_user_avatar
           ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(row.other_user)}&background=7c3aed&color=fff`,
@@ -36,7 +41,6 @@ export class SessionController {
     });
   }
 
-  // UC-SCH-02: check for conflicting sessions at the requested time slot
   async checkAvailability(targetUserId: string, scheduledAt: string, durationMinutes = 60): Promise<boolean> {
     const db = await getDb();
     const conflict = await db.get(`
@@ -48,8 +52,9 @@ export class SessionController {
     return !conflict;
   }
 
-  // UC-SCH-02: create a new session with status=pending (awaiting ActorB approval)
+  // UC-SCH-02: create a new session with status=pending and notify the other user
   async scheduleSession(data: {
+    initiatedById: string;
     teacherId: string;
     learnerId: string;
     skillTitle: string;
@@ -61,48 +66,82 @@ export class SessionController {
     if (!data.teacherId || !data.learnerId || !data.skillTitle || !data.scheduledAt) {
       throw Object.assign(new Error('Missing required session fields'), { status: 400 });
     }
+    if (data.teacherId === data.learnerId) {
+      throw Object.assign(new Error('Cannot schedule a session with yourself'), { status: 400 });
+    }
 
     const available = await this.checkAvailability(data.learnerId, data.scheduledAt);
     if (!available) {
-      throw Object.assign(new Error('Time slot not available for target user'), { status: 409 });
+      throw Object.assign(new Error('Time slot not available for the selected user'), { status: 409 });
     }
 
     const db = await getDb();
     const id = randomUUID();
+    const duration = data.durationMinutes ?? 60;
+    const mode = data.deliveryMode ?? 'online';
+
     await db.run(
-      `INSERT INTO sessions (id, listing_id, teacher_id, learner_id, skill_title, scheduled_at, duration_minutes, delivery_mode, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [
-        id,
-        data.listingId ?? null,
-        data.teacherId,
-        data.learnerId,
-        data.skillTitle,
-        data.scheduledAt,
-        data.durationMinutes ?? 60,
-        data.deliveryMode ?? 'online',
-      ]
+      `INSERT INTO sessions
+         (id, listing_id, teacher_id, learner_id, skill_title, scheduled_at,
+          duration_minutes, delivery_mode, status, initiated_by_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      [id, data.listingId ?? null, data.teacherId, data.learnerId,
+       data.skillTitle, data.scheduledAt, duration, mode, data.initiatedById]
     );
+
+    // Send automated message to the other party
+    const receiverId = data.initiatedById === data.teacherId ? data.learnerId : data.teacherId;
+    const dateStr = data.scheduledAt.slice(0, 10);
+    const timeStr = data.scheduledAt.slice(11, 16);
+    try {
+      await messagesController.sendMessage(
+        data.initiatedById,
+        receiverId,
+        `Session request: "${data.skillTitle}" on ${dateStr} at ${timeStr} (${duration} min, ${mode}). Please respond in your Sessions page.`
+      );
+    } catch {
+      // Message failure is non-fatal — session was created
+    }
+
     return { id, status: 'pending', ...data };
   }
 
-  // UC-SCH-02: ActorB accepts or rejects a session proposal
+  // UC-SCH-02: the non-initiator accepts or rejects a pending session
   async handleResponse(sessionId: string, userId: string, response: 'accepted' | 'rejected') {
     const db = await getDb();
     const session = await db.get(
-      'SELECT id, learner_id, status FROM sessions WHERE id = ?',
+      'SELECT id, teacher_id, learner_id, initiated_by_id, status FROM sessions WHERE id = ?',
       sessionId
     );
-    if (!session) {
-      throw Object.assign(new Error('Session not found'), { status: 404 });
-    }
-    if (session.learner_id !== userId) {
-      throw Object.assign(new Error('Not authorized to respond to this session'), { status: 403 });
-    }
+    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (session.status !== 'pending') throw Object.assign(new Error('Session is not pending'), { status: 400 });
+
+    const isParticipant = session.teacher_id === userId || session.learner_id === userId;
+    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+
+    // Determine initiator (default: teacher for legacy seed data)
+    const initiator = session.initiated_by_id ?? session.teacher_id;
+    if (userId === initiator) throw Object.assign(new Error('Cannot respond to your own request'), { status: 403 });
 
     const newStatus = response === 'accepted' ? 'confirmed' : 'cancelled';
     await db.run('UPDATE sessions SET status = ? WHERE id = ?', [newStatus, sessionId]);
     return { id: sessionId, status: newStatus };
+  }
+
+  async cancelSession(sessionId: string, userId: string) {
+    const db = await getDb();
+    const session = await db.get(
+      'SELECT id, teacher_id, learner_id, status FROM sessions WHERE id = ?',
+      sessionId
+    );
+    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (session.status !== 'pending' && session.status !== 'confirmed' && session.status !== 'upcoming') {
+      throw Object.assign(new Error('Session cannot be cancelled'), { status: 400 });
+    }
+    const isParticipant = session.teacher_id === userId || session.learner_id === userId;
+    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    await db.run('UPDATE sessions SET status = ? WHERE id = ?', ['cancelled', sessionId]);
+    return { id: sessionId, status: 'cancelled' };
   }
 }
 

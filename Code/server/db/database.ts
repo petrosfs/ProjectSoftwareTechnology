@@ -69,6 +69,11 @@ async function runMigrations(db: Database): Promise<void> {
     console.log('Migration: sessions table updated with pending/confirmed statuses');
   }
 
+  if (!(await hasColumn('sessions', 'initiated_by_id'))) {
+    await db.exec(`ALTER TABLE sessions ADD COLUMN initiated_by_id TEXT`);
+    console.log('Migration: added initiated_by_id to sessions');
+  }
+
   // Create conversations + messages tables for existing DBs
   await db.exec(`
     CREATE TABLE IF NOT EXISTS conversations (

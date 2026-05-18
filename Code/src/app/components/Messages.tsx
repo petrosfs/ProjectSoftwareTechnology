@@ -1,5 +1,6 @@
 import { Search, Send, MoreVertical, Star, Trash2, CheckCheck, X, MessageSquare } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router';
 
 interface OtherUser {
   id: string;
@@ -53,8 +54,10 @@ function UserAvatar({ name, avatar, size = 'md' }: { name: string; avatar: strin
 }
 
 export function Messages() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingUser, setPendingUser] = useState<OtherUser | null>(null); // new conv with no history yet
   const [messages, setMessages] = useState<Message[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -69,19 +72,46 @@ export function Messages() {
 
   const selectedConv = conversations.find(c => c.id === selectedId) ?? null;
 
-  // Load conversations
+  // Load conversations (no routing logic here)
   const fetchConversations = useCallback(async () => {
     try {
       const res = await fetch('/api/messages/conversations', { credentials: 'include' });
       if (res.ok) {
         const data: Conversation[] = await res.json();
         setConversations(data);
-        if (data.length > 0 && !selectedId) setSelectedId(data[0].id);
       }
     } finally {
       setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reactively handle ?userId= param: runs whenever URL param or conversations change
+  useEffect(() => {
+    const targetId = searchParams.get('userId');
+    if (!targetId || loading) return;
+
+    // Clear the param from URL immediately so this effect doesn't re-fire
+    setSearchParams({}, { replace: true });
+
+    const existing = conversations.find(c => c.otherUser.id === targetId);
+    if (existing) {
+      setSelectedId(existing.id);
+      setMessages([]);
+    } else {
+      fetch(`/api/users/${targetId}`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(u => {
+          if (u) setPendingUser({ id: u.id, name: u.name, avatar: u.avatar ?? null, rating: u.rating ?? 0 });
+        });
+    }
+  }, [searchParams, conversations, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Default selection: first conversation when no userId param and nothing selected
+  useEffect(() => {
+    if (loading || selectedId || pendingUser) return;
+    if (searchParams.get('userId')) return; // wait for the routing effect above
+    if (conversations.length > 0) setSelectedId(conversations[0].id);
+  }, [loading, conversations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load messages for selected conversation
   const fetchMessages = useCallback(async (convId: string) => {
@@ -120,7 +150,8 @@ export function Messages() {
   };
 
   const handleSend = async () => {
-    if (!messageText.trim() || !selectedConv || sending) return;
+    const receiverId = selectedConv?.otherUser.id ?? pendingUser?.id;
+    if (!messageText.trim() || !receiverId || sending) return;
     const text = messageText.trim();
     setMessageText('');
     setSending(true);
@@ -129,14 +160,26 @@ export function Messages() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ receiverId: selectedConv.otherUser.id, text }),
+        body: JSON.stringify({ receiverId, text }),
       });
       if (res.ok) {
         const newMsg: Message = await res.json();
-        setMessages(prev => [...prev, newMsg]);
-        setConversations(prev => prev.map(c =>
-          c.id === selectedId ? { ...c, lastMessage: text, lastMessageTime: newMsg.createdAt } : c
-        ));
+        if (pendingUser) {
+          // First message — conversation was just created, reload list and select it
+          setPendingUser(null);
+          const convRes = await fetch('/api/messages/conversations', { credentials: 'include' });
+          if (convRes.ok) {
+            const data: Conversation[] = await convRes.json();
+            setConversations(data);
+            setSelectedId(newMsg.conversationId);
+          }
+          setMessages([newMsg]);
+        } else {
+          setMessages(prev => [...prev, newMsg]);
+          setConversations(prev => prev.map(c =>
+            c.id === selectedId ? { ...c, lastMessage: text, lastMessageTime: newMsg.createdAt } : c
+          ));
+        }
       } else {
         setMessageText(text);
       }
@@ -253,23 +296,27 @@ export function Messages() {
 
         {/* ── Right: Chat Area ── */}
         <div className="hidden md:flex md:flex-col flex-1 min-w-0">
-          {selectedConv ? (
+          {selectedConv || pendingUser ? (
             <>
               {/* Header */}
+              {(() => {
+                const cu = selectedConv?.otherUser ?? pendingUser!;
+                return (
               <div className="p-4 border-b border-purple-100 flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
                 <div className="flex items-center gap-3">
-                  <UserAvatar name={selectedConv.otherUser.name} avatar={selectedConv.otherUser.avatar} size="sm" />
+                  <UserAvatar name={cu.name} avatar={cu.avatar} size="sm" />
                   <div>
-                    <h3 className="font-semibold text-gray-900">{selectedConv.otherUser.name}</h3>
-                    {selectedConv.otherUser.rating > 0 && (
+                    <h3 className="font-semibold text-gray-900">{cu.name}</h3>
+                    {cu.rating > 0 && (
                       <div className="flex items-center gap-1">
                         <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs text-gray-500">{selectedConv.otherUser.rating.toFixed(1)}</span>
+                        <span className="text-xs text-gray-500">{cu.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
                 </div>
-                {/* 3-dot menu */}
+                {/* 3-dot menu — only for existing conversations */}
+                {selectedConv && (
                 <div className="relative" ref={menuRef}>
                   <button
                     onClick={() => setMenuOpenFor(menuOpenFor === selectedConv.id ? null : selectedConv.id)}
@@ -298,13 +345,16 @@ export function Messages() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
+                );
+              })()}
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                    No messages yet — say hello!
+                    {pendingUser ? `Start a conversation with ${pendingUser.name}` : 'No messages yet — say hello!'}
                   </div>
                 ) : (
                   messages.map(msg => (
