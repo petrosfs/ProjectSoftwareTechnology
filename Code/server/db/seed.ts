@@ -71,6 +71,85 @@ const SEED_SESSIONS = [
   { id: 'sess-u6', listing_id: 'list-8', teacher_id: 'user-6', learner_id: 'user-1', skill_title: 'Guitar Intermediate Techniques', scheduled_at: '2026-05-20T16:00:00', status: 'upcoming' },
 ];
 
+// 8 conversations linking the 6 users via their sessions
+const SEED_CONVERSATIONS = [
+  { id: 'conv-1-6', user1_id: 'user-1', user2_id: 'user-6', last_at: '2026-05-19T16:30:00' }, // Alice ↔ Fanis  (guitar)
+  { id: 'conv-1-3', user1_id: 'user-1', user2_id: 'user-3', last_at: '2026-05-18T11:20:00' }, // Alice ↔ Carla  (web dev)
+  { id: 'conv-2-5', user1_id: 'user-2', user2_id: 'user-5', last_at: '2026-05-19T09:15:00' }, // Bob   ↔ Elena  (Python)
+  { id: 'conv-2-3', user1_id: 'user-2', user2_id: 'user-3', last_at: '2026-05-17T14:50:00' }, // Bob   ↔ Carla  (photography)
+  { id: 'conv-3-4', user1_id: 'user-3', user2_id: 'user-4', last_at: '2026-05-16T10:00:00' }, // Carla ↔ Dimitris (yoga)
+  { id: 'conv-4-6', user1_id: 'user-4', user2_id: 'user-6', last_at: '2026-05-15T18:30:00' }, // Dimitris ↔ Fanis (chess)
+  { id: 'conv-5-4', user1_id: 'user-5', user2_id: 'user-4', last_at: '2026-05-18T15:45:00' }, // Elena ↔ Dimitris (SEO)
+  { id: 'conv-6-2', user1_id: 'user-6', user2_id: 'user-2', last_at: '2026-05-17T12:00:00' }, // Fanis ↔ Bob (Python)
+];
+
+const SEED_MESSAGES = [
+  // Alice ↔ Fanis — guitar sessions
+  { id: 'msg-1-6-1', conv: 'conv-1-6', sender: 'user-6', text: "Hey Alice! Have you been practicing the chord transitions I showed you?",                           at: '2026-05-19T15:00:00', read: 1 },
+  { id: 'msg-1-6-2', conv: 'conv-1-6', sender: 'user-1', text: "Hi Fanis! Yes, every evening. The G to C transition is finally getting smooth!",                     at: '2026-05-19T15:10:00', read: 1 },
+  { id: 'msg-1-6-3', conv: 'conv-1-6', sender: 'user-6', text: "Great progress! This session we'll add the D chord and learn your first full song.",                   at: '2026-05-19T15:15:00', read: 1 },
+  { id: 'msg-1-6-4', conv: 'conv-1-6', sender: 'user-1', text: "A full song already? That's amazing! Which one?",                                                       at: '2026-05-19T15:20:00', read: 1 },
+  { id: 'msg-1-6-5', conv: 'conv-1-6', sender: 'user-6', text: "Knockin' on Heaven's Door — only 3 chords and it sounds fantastic. Perfect for beginners.",            at: '2026-05-19T15:25:00', read: 1 },
+  { id: 'msg-1-6-6', conv: 'conv-1-6', sender: 'user-1', text: "I love that song! See you tomorrow at 4PM then.",                                                       at: '2026-05-19T15:30:00', read: 1 },
+  { id: 'msg-1-6-7', conv: 'conv-1-6', sender: 'user-6', text: "See you then! Bring your guitar and a pick.",                                                           at: '2026-05-19T16:30:00', read: 0 },
+
+  // Alice ↔ Carla — upcoming web dev session
+  { id: 'msg-1-3-1', conv: 'conv-1-3', sender: 'user-1', text: "Hi Carla! I'm Alice, your web development instructor for our session on May 22nd.",                    at: '2026-05-17T10:00:00', read: 1 },
+  { id: 'msg-1-3-2', conv: 'conv-1-3', sender: 'user-3', text: "Hi Alice! I've heard great things about you. Really excited to start!",                                 at: '2026-05-17T10:15:00', read: 1 },
+  { id: 'msg-1-3-3', conv: 'conv-1-3', sender: 'user-1', text: "Happy to have you! Do you have any coding experience at all?",                                          at: '2026-05-17T10:20:00', read: 1 },
+  { id: 'msg-1-3-4', conv: 'conv-1-3', sender: 'user-3', text: "Just a little HTML from years ago, nothing with JavaScript yet.",                                       at: '2026-05-17T10:30:00', read: 1 },
+  { id: 'msg-1-3-5', conv: 'conv-1-3', sender: 'user-1', text: "Perfect starting point! Please install VS Code before the session — code.visualstudio.com",             at: '2026-05-18T09:00:00', read: 1 },
+  { id: 'msg-1-3-6', conv: 'conv-1-3', sender: 'user-3', text: "Done! Just installed it. Should I prepare anything else?",                                              at: '2026-05-18T09:45:00', read: 1 },
+  { id: 'msg-1-3-7', conv: 'conv-1-3', sender: 'user-1', text: "Just bring your laptop and curiosity. We'll build something real from day one!",                        at: '2026-05-18T11:20:00', read: 0 },
+
+  // Bob ↔ Elena — Python (completed) + photography chat
+  { id: 'msg-2-5-1', conv: 'conv-2-5', sender: 'user-2', text: "Hey Elena! Ready for the Python class this morning? We're writing our first script today.",             at: '2026-05-03T08:00:00', read: 1 },
+  { id: 'msg-2-5-2', conv: 'conv-2-5', sender: 'user-5', text: "Hi Bob! Yes, I went through the intro material. Feeling nervous but excited!",                          at: '2026-05-03T08:20:00', read: 1 },
+  { id: 'msg-2-5-3', conv: 'conv-2-5', sender: 'user-2', text: "No need to be nervous! We'll take it step by step. See you at 10AM.",                                   at: '2026-05-03T08:30:00', read: 1 },
+  { id: 'msg-2-5-4', conv: 'conv-2-5', sender: 'user-5', text: "That session was incredible! I can't believe I built a data analysis script on my very first day.",     at: '2026-05-03T12:00:00', read: 1 },
+  { id: 'msg-2-5-5', conv: 'conv-2-5', sender: 'user-2', text: "You picked it up super fast! Keen to do a follow-up session soon?",                                     at: '2026-05-03T12:15:00', read: 1 },
+  { id: 'msg-2-5-6', conv: 'conv-2-5', sender: 'user-5', text: "Definitely! By the way, I saw you signed up for Carla's photography class too.",                        at: '2026-05-19T08:00:00', read: 1 },
+  { id: 'msg-2-5-7', conv: 'conv-2-5', sender: 'user-2', text: "Yes! I've always wanted to learn photography. Any tips?",                                               at: '2026-05-19T08:10:00', read: 1 },
+  { id: 'msg-2-5-8', conv: 'conv-2-5', sender: 'user-5', text: "Just enjoy it! Carla is an amazing instructor. You're going to love it.",                               at: '2026-05-19T09:15:00', read: 0 },
+
+  // Bob ↔ Carla — upcoming photography session
+  { id: 'msg-2-3-1', conv: 'conv-2-3', sender: 'user-3', text: "Hi Bob! I'm Carla, your photography instructor. Our session is on May 23rd at 3PM.",                   at: '2026-05-15T11:00:00', read: 1 },
+  { id: 'msg-2-3-2', conv: 'conv-2-3', sender: 'user-2', text: "Hi Carla! Really looking forward to it. I only have a smartphone — is that OK?",                       at: '2026-05-15T11:30:00', read: 1 },
+  { id: 'msg-2-3-3', conv: 'conv-2-3', sender: 'user-3', text: "Absolutely fine! We'll focus on composition and lighting which work on any camera.",                    at: '2026-05-15T12:00:00', read: 1 },
+  { id: 'msg-2-3-4', conv: 'conv-2-3', sender: 'user-2', text: "Great! Should I prepare anything?",                                                                    at: '2026-05-16T09:00:00', read: 1 },
+  { id: 'msg-2-3-5', conv: 'conv-2-3', sender: 'user-3', text: "Just come ready to walk around outdoors and experiment. Oh, and charge your phone!",                   at: '2026-05-17T14:50:00', read: 0 },
+
+  // Carla ↔ Dimitris — yoga (completed)
+  { id: 'msg-3-4-1', conv: 'conv-3-4', sender: 'user-3', text: "Hi Dimitris! Hope you enjoyed the yoga session. How are you feeling?",                                  at: '2026-05-12T10:00:00', read: 1 },
+  { id: 'msg-3-4-2', conv: 'conv-3-4', sender: 'user-4', text: "Hi Carla! It was fantastic — my back pain has almost completely disappeared!",                          at: '2026-05-12T10:30:00', read: 1 },
+  { id: 'msg-3-4-3', conv: 'conv-3-4', sender: 'user-3', text: "That's wonderful to hear! Are you keeping up with the morning stretch routine?",                        at: '2026-05-12T10:45:00', read: 1 },
+  { id: 'msg-3-4-4', conv: 'conv-3-4', sender: 'user-4', text: "Every single morning. It only takes 10 minutes but the difference is huge.",                            at: '2026-05-13T08:00:00', read: 1 },
+  { id: 'msg-3-4-5', conv: 'conv-3-4', sender: 'user-3', text: "Consistency is everything with yoga. Keep it up!",                                                     at: '2026-05-14T09:00:00', read: 1 },
+  { id: 'msg-3-4-6', conv: 'conv-3-4', sender: 'user-4', text: "Would you be available for another session? I'd like to start intermediate poses.",                     at: '2026-05-16T10:00:00', read: 0 },
+
+  // Dimitris ↔ Fanis — chess (completed)
+  { id: 'msg-4-6-1', conv: 'conv-4-6', sender: 'user-4', text: "Hey Fanis! How are you finding the chess openings we worked on?",                                       at: '2026-05-13T17:00:00', read: 1 },
+  { id: 'msg-4-6-2', conv: 'conv-4-6', sender: 'user-6', text: "Hi Dimitris! The Sicilian Defence is brilliant. I've been winning more games online!",                  at: '2026-05-13T17:20:00', read: 1 },
+  { id: 'msg-4-6-3', conv: 'conv-4-6', sender: 'user-4', text: "Excellent! The Najdorf variation is one of the sharpest responses to 1.e4.",                            at: '2026-05-13T17:30:00', read: 1 },
+  { id: 'msg-4-6-4', conv: 'conv-4-6', sender: 'user-6', text: "I even beat a 1200-rated player yesterday! Can we do a follow-up on middlegame tactics?",               at: '2026-05-14T10:00:00', read: 1 },
+  { id: 'msg-4-6-5', conv: 'conv-4-6', sender: 'user-4', text: "Of course! Middlegame is where most games are decided. I'll prepare a set of puzzle positions.",        at: '2026-05-15T18:30:00', read: 0 },
+
+  // Elena ↔ Dimitris — upcoming SEO session
+  { id: 'msg-5-4-1', conv: 'conv-5-4', sender: 'user-5', text: "Hi Dimitris! I'm Elena, your SEO instructor for May 24th. Looking forward to working with you!",        at: '2026-05-17T14:00:00', read: 1 },
+  { id: 'msg-5-4-2', conv: 'conv-5-4', sender: 'user-4', text: "Hi Elena! Same here. I actually have a chess blog we could use as a real case study.",                  at: '2026-05-17T14:20:00', read: 1 },
+  { id: 'msg-5-4-3', conv: 'conv-5-4', sender: 'user-5', text: "That's perfect! A niche blog is one of the best use cases for SEO. Can you send me the URL?",          at: '2026-05-17T14:35:00', read: 1 },
+  { id: 'msg-5-4-4', conv: 'conv-5-4', sender: 'user-4', text: "Will do. Is there any reading material I should go through beforehand?",                                at: '2026-05-18T09:00:00', read: 1 },
+  { id: 'msg-5-4-5', conv: 'conv-5-4', sender: 'user-5', text: "Not required, but Google's SEO Starter Guide is worth a quick read. It's free online.",                 at: '2026-05-18T15:45:00', read: 0 },
+
+  // Fanis ↔ Bob — upcoming Python session
+  { id: 'msg-6-2-1', conv: 'conv-6-2', sender: 'user-6', text: "Hi Bob! I'm Fanis, registered for your Python course on May 21st. Just wanted to say hello!",          at: '2026-05-16T11:00:00', read: 1 },
+  { id: 'msg-6-2-2', conv: 'conv-6-2', sender: 'user-2', text: "Hey Fanis! Great to meet you. Any prior programming experience?",                                       at: '2026-05-16T11:20:00', read: 1 },
+  { id: 'msg-6-2-3', conv: 'conv-6-2', sender: 'user-6', text: "None at all — complete beginner. I hope that's not a problem!",                                         at: '2026-05-16T11:35:00', read: 1 },
+  { id: 'msg-6-2-4', conv: 'conv-6-2', sender: 'user-2', text: "Not a problem at all! I actually prefer teaching from scratch. What's drawing you to Python?",          at: '2026-05-16T11:45:00', read: 1 },
+  { id: 'msg-6-2-5', conv: 'conv-6-2', sender: 'user-6', text: "I do music production and I've heard Python can automate a lot of audio processing tasks.",              at: '2026-05-16T12:00:00', read: 1 },
+  { id: 'msg-6-2-6', conv: 'conv-6-2', sender: 'user-2', text: "That's a brilliant use case! We'll start with the basics and build towards audio automation as a project.", at: '2026-05-17T12:00:00', read: 0 },
+];
+
 const SEED_REVIEWS = [
   { id: 'rev-1', session_id: 'sess-c1', from_user_id: 'user-1', to_user_id: 'user-6', rating: 5, comment: 'Fanis is an incredibly talented guitarist and a wonderful teacher. My playing improved dramatically after just one session!', skill_title: 'Guitar Lessons', created_at: '2026-05-01' },
   { id: 'rev-2', session_id: 'sess-c2', from_user_id: 'user-5', to_user_id: 'user-2', rating: 5, comment: "Bob's Python classes are world-class. Very clear explanations and excellent practical examples. Highly recommended!", skill_title: 'Python', created_at: '2026-05-03' },
@@ -140,5 +219,22 @@ export async function seedData(): Promise<void> {
       );
     }
     console.log('Seeded reviews');
+  }
+
+  const anyConv = await db.get('SELECT id FROM conversations LIMIT 1');
+  if (!anyConv) {
+    for (const c of SEED_CONVERSATIONS) {
+      await db.run(
+        'INSERT INTO conversations (id, user1_id, user2_id, last_message_at) VALUES (?, ?, ?, ?)',
+        [c.id, c.user1_id, c.user2_id, c.last_at]
+      );
+    }
+    for (const m of SEED_MESSAGES) {
+      await db.run(
+        'INSERT INTO messages (id, conversation_id, sender_id, text, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [m.id, m.conv, m.sender, m.text, m.read, m.at]
+      );
+    }
+    console.log('Seeded conversations and messages');
   }
 }

@@ -10,6 +10,7 @@ import { offersRouter } from './offers.js';
 import { searchRouter } from './search.js';
 import { swapsRouter } from './swaps.js';
 import { reviewsRouter } from './reviews.js';
+import { messagesRouter } from './messages.js';
 
 export const apiRouter = Router();
 
@@ -24,3 +25,4 @@ apiRouter.use('/offers', offersRouter);
 apiRouter.use('/search', searchRouter);
 apiRouter.use('/swaps', swapsRouter);
 apiRouter.use('/reviews', reviewsRouter);
+apiRouter.use('/messages', messagesRouter);

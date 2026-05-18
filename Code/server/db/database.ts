@@ -68,6 +68,27 @@ async function runMigrations(db: Database): Promise<void> {
     await db.exec('PRAGMA foreign_keys = ON');
     console.log('Migration: sessions table updated with pending/confirmed statuses');
   }
+
+  // Create conversations + messages tables for existing DBs
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      user1_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user2_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT DEFAULT (datetime('now')),
+      last_message_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      text TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 }
 
 export async function getDb(): Promise<Database> {

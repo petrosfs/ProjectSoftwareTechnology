@@ -99,3 +99,20 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY,
+  user1_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user2_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT DEFAULT (datetime('now')),
+  last_message_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  is_read INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
