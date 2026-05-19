@@ -238,9 +238,12 @@ function ScheduleModal({
         credentials: 'include',
         body: JSON.stringify({ otherUserId: selectedUser.id, myRole, skillTitle: skillTitle.trim(), scheduledAt, durationMinutes: duration, deliveryMode: mode }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to schedule session'); return; }
+      let data: any = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+      if (!res.ok) { setError(data.error || `Request failed (HTTP ${res.status})`); return; }
       onCreated();
+    } catch (err: any) {
+      setError(err.message || 'Network error – could not reach the server');
     } finally {
       setSubmitting(false);
     }

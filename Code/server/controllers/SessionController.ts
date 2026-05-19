@@ -83,6 +83,8 @@ export class SessionController {
     const mode = data.deliveryMode ?? 'online';
     const meetingUrl = mode === 'online' ? createMeetingUrl(data.skillTitle) : null;
 
+    console.log('[scheduleSession] Inserting session:', { id, teacherId: data.teacherId, learnerId: data.learnerId, scheduledAt: data.scheduledAt, mode });
+
     await db.run(
       `INSERT INTO sessions
          (id, listing_id, teacher_id, learner_id, skill_title, scheduled_at,

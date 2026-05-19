@@ -32,7 +32,8 @@ sessionsRouter.post('/', async (req: Request, res: Response) => {
     });
     res.status(201).json(session);
   } catch (err: any) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    console.error('[POST /sessions] Error:', err);
+    res.status(err.status ?? 500).json({ error: err.message ?? String(err) });
   }
 });
 

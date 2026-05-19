@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   duration_minutes INTEGER DEFAULT 60,
   delivery_mode TEXT DEFAULT 'online',
   status TEXT CHECK(status IN ('pending', 'confirmed', 'upcoming', 'completed', 'cancelled')) DEFAULT 'pending',
+  initiated_by_id TEXT,
+  meeting_url TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
 
