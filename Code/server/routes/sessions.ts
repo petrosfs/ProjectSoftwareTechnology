@@ -33,7 +33,7 @@ sessionsRouter.post('/', async (req: Request, res: Response) => {
     res.status(201).json(session);
   } catch (err: any) {
     console.error('[POST /sessions] Error:', err);
-    res.status(err.status ?? 500).json({ error: err.message ?? String(err) });
+    res.status(err.status ?? 500).json({ error: err.message ?? String(err), ...(err.code ? { code: err.code } : {}) });
   }
 });
 
@@ -49,7 +49,7 @@ sessionsRouter.patch('/:id/response', async (req: Request, res: Response) => {
     const result = await sessionController.handleResponse(req.params.id as string, userId, response);
     res.json(result);
   } catch (err: any) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
   }
 });
 
@@ -61,7 +61,7 @@ sessionsRouter.patch('/:id/cancel', async (req: Request, res: Response) => {
     const result = await sessionController.cancelSession(req.params.id as string, userId);
     res.json(result);
   } catch (err: any) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
   }
 });
 
@@ -75,7 +75,7 @@ sessionsRouter.patch('/:id/reschedule', async (req: Request, res: Response) => {
     const result = await sessionController.rescheduleSession(req.params.id as string, userId, newScheduledAt);
     res.json(result);
   } catch (err: any) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
   }
 });
 
@@ -87,7 +87,7 @@ sessionsRouter.patch('/:id/complete', async (req: Request, res: Response) => {
     const result = await sessionController.completeSession(req.params.id as string, userId);
     res.json(result);
   } catch (err: any) {
-    res.status(err.status ?? 500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
   }
 });
 

@@ -3,6 +3,7 @@ import { getDb } from '../db/database.js';
 import messagesController from './MessagesController.js';
 import { createMeetingUrl } from '../services/MeetingService.js';
 import paymentController from './PaymentController.js';
+import { AppError, ErrorCodes as E } from '../utils/errors.js';
 
 export class SessionController {
   async getSessionsForUser(userId: string) {
@@ -43,7 +44,7 @@ export class SessionController {
     });
   }
 
-  async checkAvailability(targetUserId: string, scheduledAt: string, durationMinutes = 60): Promise<boolean> {
+  async checkAvailability(targetUserId: string, scheduledAt: string, _durationMinutes = 60): Promise<boolean> {
     const db = await getDb();
     const conflict = await db.get(`
       SELECT id FROM sessions
@@ -66,15 +67,15 @@ export class SessionController {
     listingId?: string;
   }) {
     if (!data.teacherId || !data.learnerId || !data.skillTitle || !data.scheduledAt) {
-      throw Object.assign(new Error('Missing required session fields'), { status: 400 });
+      throw new AppError('Missing required session fields', 400, E.SESSION_MISSING_FIELDS);
     }
     if (data.teacherId === data.learnerId) {
-      throw Object.assign(new Error('Cannot schedule a session with yourself'), { status: 400 });
+      throw new AppError('Cannot schedule a session with yourself', 400, E.SESSION_SELF_SCHEDULE);
     }
 
     const available = await this.checkAvailability(data.learnerId, data.scheduledAt);
     if (!available) {
-      throw Object.assign(new Error('Time slot not available for the selected user'), { status: 409 });
+      throw new AppError('Time slot not available for the selected user', 409, E.SESSION_SLOT_TAKEN);
     }
 
     const db = await getDb();
@@ -118,15 +119,15 @@ export class SessionController {
       'SELECT id, teacher_id, learner_id, initiated_by_id, status FROM sessions WHERE id = ?',
       sessionId
     );
-    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
-    if (session.status !== 'pending') throw Object.assign(new Error('Session is not pending'), { status: 400 });
+    if (!session) throw new AppError('Session not found', 404, E.SESSION_NOT_FOUND);
+    if (session.status !== 'pending') throw new AppError('Session is not pending', 400, E.SESSION_NOT_PENDING);
 
     const isParticipant = session.teacher_id === userId || session.learner_id === userId;
-    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    if (!isParticipant) throw new AppError('Not authorized', 403, E.FORBIDDEN);
 
     // Determine initiator (default: teacher for legacy seed data)
     const initiator = session.initiated_by_id ?? session.teacher_id;
-    if (userId === initiator) throw Object.assign(new Error('Cannot respond to your own request'), { status: 403 });
+    if (userId === initiator) throw new AppError('Cannot respond to your own request', 403, E.SESSION_CANNOT_RESPOND);
 
     const newStatus = response === 'accepted' ? 'confirmed' : 'cancelled';
     await db.run('UPDATE sessions SET status = ? WHERE id = ?', [newStatus, sessionId]);
@@ -139,12 +140,12 @@ export class SessionController {
       'SELECT id, teacher_id, learner_id, listing_id, status FROM sessions WHERE id = ?',
       sessionId
     );
-    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (!session) throw new AppError('Session not found', 404, E.SESSION_NOT_FOUND);
     if (session.status !== 'pending' && session.status !== 'confirmed' && session.status !== 'upcoming') {
-      throw Object.assign(new Error('Session cannot be cancelled'), { status: 400 });
+      throw new AppError('Session cannot be cancelled', 400, E.SESSION_CANNOT_CANCEL);
     }
     const isParticipant = session.teacher_id === userId || session.learner_id === userId;
-    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    if (!isParticipant) throw new AppError('Not authorized', 403, E.FORBIDDEN);
     await db.run('UPDATE sessions SET status = ? WHERE id = ?', ['cancelled', sessionId]);
     if (session.listing_id) {
       await paymentController.refundPayment(session.listing_id, session.learner_id);
@@ -158,12 +159,12 @@ export class SessionController {
       'SELECT id, teacher_id, learner_id, status, delivery_mode, skill_title, meeting_url FROM sessions WHERE id = ?',
       sessionId
     );
-    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (!session) throw new AppError('Session not found', 404, E.SESSION_NOT_FOUND);
     if (!['pending', 'confirmed', 'upcoming'].includes(session.status)) {
-      throw Object.assign(new Error('Session cannot be rescheduled'), { status: 400 });
+      throw new AppError('Session cannot be rescheduled', 400, E.SESSION_CANNOT_RESCHEDULE);
     }
     const isParticipant = session.teacher_id === userId || session.learner_id === userId;
-    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    if (!isParticipant) throw new AppError('Not authorized', 403, E.FORBIDDEN);
 
     // Generate meeting URL if online session is missing one (e.g. legacy rows)
     const meetingUrl = (session.delivery_mode === 'online' && !session.meeting_url)
@@ -197,12 +198,12 @@ export class SessionController {
       'SELECT id, teacher_id, learner_id, listing_id, status FROM sessions WHERE id = ?',
       sessionId
     );
-    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (!session) throw new AppError('Session not found', 404, E.SESSION_NOT_FOUND);
     if (!['confirmed', 'upcoming'].includes(session.status)) {
-      throw Object.assign(new Error('Session cannot be completed in its current state'), { status: 400 });
+      throw new AppError('Session cannot be completed in its current state', 400, E.SESSION_CANNOT_COMPLETE);
     }
     const isParticipant = session.teacher_id === userId || session.learner_id === userId;
-    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    if (!isParticipant) throw new AppError('Not authorized', 403, E.FORBIDDEN);
     await db.run('UPDATE sessions SET status = ? WHERE id = ?', ['completed', sessionId]);
     if (session.listing_id) {
       await paymentController.releasePayment(session.listing_id, session.learner_id);

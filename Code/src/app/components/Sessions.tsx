@@ -240,7 +240,11 @@ function ScheduleModal({
       });
       let data: any = {};
       try { data = await res.json(); } catch { /* non-JSON response */ }
-      if (!res.ok) { setError(data.error || `Request failed (HTTP ${res.status})`); return; }
+      if (!res.ok) {
+        const code = data.code ? ` [${data.code}]` : ` [HTTP ${res.status}]`;
+        setError((data.error || 'Request failed') + code);
+        return;
+      }
       onCreated();
     } catch (err: any) {
       setError(err.message || 'Network error – could not reach the server');
@@ -560,6 +564,7 @@ export function Sessions() {
   const [cancelling, setCancelling] = useState<Record<string, boolean>>({});
   const [completing, setCompleting] = useState<Record<string, boolean>>({});
   const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [reviewTarget, setReviewTarget] = useState<Session | null>(null);
   const [reviewedSessions, setReviewedSessions] = useState<Set<string>>(new Set());
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -591,6 +596,11 @@ export function Sessions() {
   const upcoming = sessions.filter(s => s.status === 'upcoming' || s.status === 'confirmed');
   const completed = sessions.filter(s => s.status === 'completed');
 
+  const showApiError = (data: any, status: number) => {
+    const code = data?.code ? ` [${data.code}]` : ` [HTTP ${status}]`;
+    setErrorMsg((data?.error || 'Request failed') + code);
+  };
+
   const handleResponse = async (sessionId: string, response: 'accepted' | 'rejected') => {
     setResponding(r => ({ ...r, [sessionId]: true }));
     const res = await fetch(`/api/sessions/${sessionId}/response`, {
@@ -599,10 +609,12 @@ export function Sessions() {
       credentials: 'include',
       body: JSON.stringify({ response }),
     });
+    const data = await res.json();
     if (res.ok) {
-      const { status } = await res.json();
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status } : s));
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: data.status } : s));
       if (response === 'accepted') setSuccessMsg('Session confirmed!');
+    } else {
+      showApiError(data, res.status);
     }
     setResponding(r => ({ ...r, [sessionId]: false }));
   };
@@ -612,7 +624,12 @@ export function Sessions() {
     const res = await fetch(`/api/sessions/${sessionId}/cancel`, {
       method: 'PATCH', credentials: 'include',
     });
-    if (res.ok) setSessions(prev => prev.filter(s => s.id !== sessionId));
+    if (res.ok) {
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+    } else {
+      const data = await res.json().catch(() => ({}));
+      showApiError(data, res.status);
+    }
     setCancelling(c => ({ ...c, [sessionId]: false }));
   };
 
@@ -624,6 +641,9 @@ export function Sessions() {
     if (res.ok) {
       setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'completed' } : s));
       setSuccessMsg('Session marked as completed! Payment has been released to the teacher.');
+    } else {
+      const data = await res.json().catch(() => ({}));
+      showApiError(data, res.status);
     }
     setCompleting(c => ({ ...c, [sessionId]: false }));
   };
@@ -667,6 +687,17 @@ export function Sessions() {
           <Check className="w-5 h-5 flex-shrink-0" />
           <span className="font-medium">{successMsg}</span>
           <button onClick={() => setSuccessMsg('')} className="ml-auto">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Error banner */}
+      {errorMsg && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-3 text-red-700">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span className="font-medium">{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="ml-auto">
             <X className="w-4 h-4" />
           </button>
         </div>
