@@ -205,6 +205,7 @@ export function Marketplace() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         type={modalType}
+        onSuccess={(listing) => setListings((prev) => [listing, ...prev])}
       />
     </div>
   );

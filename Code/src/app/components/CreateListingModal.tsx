@@ -6,9 +6,10 @@ interface CreateListingModalProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'offer' | 'request';
+  onSuccess?: (listing: any) => void;
 }
 
-export function CreateListingModal({ isOpen, onClose, type }: CreateListingModalProps) {
+export function CreateListingModal({ isOpen, onClose, type, onSuccess }: CreateListingModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -16,24 +17,40 @@ export function CreateListingModal({ isOpen, onClose, type }: CreateListingModal
     price: '',
     swapAvailable: false,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would handle the actual submission
-    console.log('Listing created:', { ...formData, type });
-    
-    // Show success message (you could use toast here)
-    alert(`${type === 'offer' ? 'Skill Offer' : 'Skill Request'} created successfully!`);
-    
-    // Reset form and close modal
-    setFormData({
-      title: '',
-      description: '',
-      category: 'Programming',
-      price: '',
-      swapAvailable: false,
-    });
-    onClose();
+    setIsSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          price: formData.price ? Number(formData.price) : null,
+          swapAvailable: formData.swapAvailable,
+          type,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? 'Αποτυχία δημιουργίας αγγελίας');
+      }
+      const listing = await res.json();
+      setFormData({ title: '', description: '', category: 'Programming', price: '', swapAvailable: false });
+      onSuccess?.(listing);
+      onClose();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -41,11 +58,11 @@ export function CreateListingModal({ isOpen, onClose, type }: CreateListingModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -56,7 +73,7 @@ export function CreateListingModal({ isOpen, onClose, type }: CreateListingModal
                 {type === 'offer' ? 'Post Your Skill' : 'Request a Skill'}
               </h2>
               <p className="text-white/90">
-                {type === 'offer' 
+                {type === 'offer'
                   ? 'Share your expertise with others and start earning or swapping skills'
                   : 'Find the perfect teacher for the skill you want to learn'}
               </p>
@@ -81,7 +98,7 @@ export function CreateListingModal({ isOpen, onClose, type }: CreateListingModal
             <input
               type="text"
               required
-              placeholder={type === 'offer' 
+              placeholder={type === 'offer'
                 ? 'e.g., Advanced React & TypeScript Development'
                 : 'e.g., Looking for Piano Instructor'}
               value={formData.title}
@@ -167,7 +184,7 @@ export function CreateListingModal({ isOpen, onClose, type }: CreateListingModal
                   className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-400"
                 />
                 <span className="text-gray-700">
-                  {type === 'offer' 
+                  {type === 'offer'
                     ? 'Open to skill swaps'
                     : 'Can offer skill swap'}
                 </span>
@@ -185,21 +202,27 @@ export function CreateListingModal({ isOpen, onClose, type }: CreateListingModal
             </p>
           </div>
 
+          {error && (
+            <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-2">{error}</p>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border-2 border-purple-200 text-purple-600 rounded-xl hover:bg-purple-50 transition-colors font-semibold"
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 border-2 border-purple-200 text-purple-600 rounded-xl hover:bg-purple-50 transition-colors font-semibold disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform font-semibold shadow-lg flex items-center justify-center space-x-2"
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform font-semibold shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:scale-100"
             >
               <Plus className="w-5 h-5" />
-              <span>{type === 'offer' ? 'Post Skill' : 'Post Request'}</span>
+              <span>{isSubmitting ? 'Δημιουργία...' : type === 'offer' ? 'Post Skill' : 'Post Request'}</span>
             </button>
           </div>
         </form>
