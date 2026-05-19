@@ -87,6 +87,15 @@ export class ReviewController {
       [Number(agg.avg_rating.toFixed(2)), agg.cnt, data.revieweeId]
     );
 
+    // Notify reviewee
+    const reviewer = await db.get('SELECT name FROM users WHERE id = ?', data.reviewerId);
+    const stars = '⭐'.repeat(data.rating);
+    const skillLabel = data.skillTitle ? ` για "${data.skillTitle}"` : '';
+    await db.run(
+      `INSERT INTO notifications (id, user_id, type, reference_id, body) VALUES (?, ?, 'in-app', ?, ?)`,
+      [randomUUID(), data.revieweeId, id, `Νέο review από ${reviewer?.name ?? 'κάποιον'}${skillLabel} — ${data.rating}/5 ${stars}`]
+    );
+
     return { id, rating: data.rating };
   }
 }

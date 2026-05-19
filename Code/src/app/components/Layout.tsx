@@ -63,7 +63,7 @@ export function Layout() {
   const unreadInbox = inboxNotifs.filter(n => !n.isRead).length;
   const totalPending = offers.length + swaps.length + unreadInbox;
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (): Promise<void> => {
     const [oRes, sRes, nRes] = await Promise.all([
       fetch('/api/offers/received', { credentials: 'include' }),
       fetch('/api/swaps/received', { credentials: 'include' }),
@@ -173,7 +173,7 @@ export function Layout() {
                   onClick={() => {
                     const opening = !panelOpen;
                     setPanelOpen(opening);
-                    if (opening) { fetchNotifications(); markInboxRead(); }
+                    if (opening) { fetchNotifications().then(markInboxRead); }
                   }}
                   className="relative p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
                   title="Notifications"

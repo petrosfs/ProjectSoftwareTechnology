@@ -79,6 +79,21 @@ export class MessagesController {
       [id, convId, senderId, text.trim(), now]
     );
     await db.run('UPDATE conversations SET last_message_at = ? WHERE id = ?', [now, convId]);
+
+    // Notify receiver — one notification per unread conversation (deduplicated)
+    const existingNotif = await db.get(
+      "SELECT id FROM notifications WHERE user_id = ? AND reference_id = ? AND is_read = 0",
+      [receiverId, convId]
+    );
+    if (!existingNotif) {
+      const sender = await db.get('SELECT name FROM users WHERE id = ?', senderId);
+      const preview = text.trim().length > 60 ? text.trim().substring(0, 60) + '…' : text.trim();
+      await db.run(
+        `INSERT INTO notifications (id, user_id, type, reference_id, body) VALUES (?, ?, 'in-app', ?, ?)`,
+        [randomUUID(), receiverId, convId, `Νέο μήνυμα από ${sender?.name ?? 'κάποιον'}: "${preview}"`]
+      );
+    }
+
     return { id, conversationId: convId, senderId, text: text.trim(), isMe: true, isRead: false, createdAt: now };
   }
 
@@ -87,6 +102,11 @@ export class MessagesController {
     await db.run(
       'UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND sender_id != ?',
       [conversationId, userId]
+    );
+    // Clear the message notification for this conversation
+    await db.run(
+      "UPDATE notifications SET is_read = 1 WHERE user_id = ? AND reference_id = ?",
+      [userId, conversationId]
     );
   }
 
