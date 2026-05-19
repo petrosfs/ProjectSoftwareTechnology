@@ -1,7 +1,7 @@
-// UC-SCH-02: Schedule Teaching Session + existing session retrieval
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/database.js';
 import messagesController from './MessagesController.js';
+import { createMeetingUrl } from '../services/MeetingService.js';
 
 export class SessionController {
   async getSessionsForUser(userId: string) {
@@ -9,7 +9,7 @@ export class SessionController {
     const rows = await db.all(`
       SELECT
         s.id, s.skill_title, s.scheduled_at, s.status,
-        s.duration_minutes, s.delivery_mode, s.initiated_by_id,
+        s.duration_minutes, s.delivery_mode, s.initiated_by_id, s.meeting_url,
         CASE WHEN s.teacher_id = ? THEN 'teaching' ELSE 'learning' END AS type,
         CASE WHEN s.teacher_id = ? THEN s.learner_id  ELSE s.teacher_id  END AS other_user_id,
         CASE WHEN s.teacher_id = ? THEN u_l.name      ELSE u_t.name      END AS other_user,
@@ -33,6 +33,7 @@ export class SessionController {
         durationMinutes: row.duration_minutes,
         deliveryMode: row.delivery_mode,
         initiatedById: row.initiated_by_id ?? null,
+        meetingUrl: row.meeting_url ?? null,
         otherUserId: row.other_user_id,
         otherUser: row.other_user,
         otherUserAvatar: row.other_user_avatar
@@ -79,14 +80,15 @@ export class SessionController {
     const id = randomUUID();
     const duration = data.durationMinutes ?? 60;
     const mode = data.deliveryMode ?? 'online';
+    const meetingUrl = mode === 'online' ? createMeetingUrl(data.skillTitle) : null;
 
     await db.run(
       `INSERT INTO sessions
          (id, listing_id, teacher_id, learner_id, skill_title, scheduled_at,
-          duration_minutes, delivery_mode, status, initiated_by_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+          duration_minutes, delivery_mode, status, initiated_by_id, meeting_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
       [id, data.listingId ?? null, data.teacherId, data.learnerId,
-       data.skillTitle, data.scheduledAt, duration, mode, data.initiatedById]
+       data.skillTitle, data.scheduledAt, duration, mode, data.initiatedById, meetingUrl]
     );
 
     // Send automated message to the other party

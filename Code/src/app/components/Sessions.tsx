@@ -17,6 +17,7 @@ interface Session {
   durationMinutes: number;
   deliveryMode: string;
   initiatedById: string | null;
+  meetingUrl: string | null;
 }
 
 interface UserResult {
@@ -841,11 +842,23 @@ export function Sessions() {
                   </div>
 
                   <div className="flex md:flex-col gap-2">
-                    {session.status !== 'pending' && (
-                      <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:scale-105 transition-transform font-semibold text-sm whitespace-nowrap">
-                        <Video className="w-4 h-4" />
-                        Join
-                      </button>
+                    {session.status !== 'pending' && session.deliveryMode === 'online' && (
+                      session.meetingUrl ? (
+                        <a
+                          href={session.meetingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:scale-105 transition-transform font-semibold text-sm whitespace-nowrap"
+                        >
+                          <Video className="w-4 h-4" />
+                          Join
+                        </a>
+                      ) : (
+                        <span className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm whitespace-nowrap cursor-not-allowed" title="Meeting link not available">
+                          <Video className="w-4 h-4" />
+                          Join
+                        </span>
+                      )
                     )}
                     <button
                       onClick={() => goToMessages(session.otherUserId)}

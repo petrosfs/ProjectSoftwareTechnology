@@ -73,6 +73,10 @@ async function runMigrations(db: Database): Promise<void> {
     await db.exec(`ALTER TABLE sessions ADD COLUMN initiated_by_id TEXT`);
     console.log('Migration: added initiated_by_id to sessions');
   }
+  if (!(await hasColumn('sessions', 'meeting_url'))) {
+    await db.exec(`ALTER TABLE sessions ADD COLUMN meeting_url TEXT`);
+    console.log('Migration: added meeting_url to sessions');
+  }
 
   // Create connections table for existing DBs
   await db.exec(`
