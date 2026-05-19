@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT,
   rating REAL DEFAULT 0,
   reviews_count INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS skills (
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS listings (
   swap_available INTEGER DEFAULT 0,
   type TEXT CHECK(type IN ('offer', 'request')) NOT NULL,
   delivery_mode TEXT DEFAULT 'online',
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   status TEXT CHECK(status IN ('pending', 'confirmed', 'upcoming', 'completed', 'cancelled')) DEFAULT 'pending',
   initiated_by_id TEXT,
   meeting_url TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS reviews (
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   comment TEXT,
   skill_title TEXT,
   is_flagged INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS offers (
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS offers (
   message TEXT,
   swap_skill TEXT,
   status TEXT CHECK(status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS swaps (
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS swaps (
   target_skill_id TEXT NOT NULL,
   message TEXT,
   status TEXT CHECK(status IN ('pending', 'accepted', 'rejected', 'expired')) DEFAULT 'pending',
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS purchases (
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS purchases (
   platform_fee REAL DEFAULT 0,
   status TEXT CHECK(status IN ('held', 'completed', 'failed', 'refunded')) DEFAULT 'held',
   transaction_ref TEXT,
-  purchased_at TEXT DEFAULT (datetime('now'))
+  purchased_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS notifications (
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   reference_id TEXT,
   body TEXT NOT NULL,
   is_read INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS connections (
@@ -110,15 +110,15 @@ CREATE TABLE IF NOT EXISTS connections (
   source_type TEXT NOT NULL,
   source_id TEXT NOT NULL,
   status TEXT DEFAULT 'awaiting_schedule',
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS conversations (
   id TEXT PRIMARY KEY,
   user1_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   user2_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TEXT DEFAULT (datetime('now')),
-  last_message_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')),
+  last_message_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -127,5 +127,5 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
   is_read INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );
