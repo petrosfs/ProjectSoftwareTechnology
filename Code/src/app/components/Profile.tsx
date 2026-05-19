@@ -1,8 +1,8 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Star, Edit, Calendar, Award, BookOpen, Clock,
-  MessageSquare, Mail, Plus, Trash2, X, Save, Loader2,
+  MessageSquare, Mail, Plus, Trash2, X, Save, Loader2, Camera,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -66,10 +66,28 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
   const [bio, setBio] = useState(user?.bio ?? '');
   const [newPassword, setNewPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentAvatar = avatarPreview
+    ?? user?.avatar
+    ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name ?? 'U')}&background=7c3aed&color=fff&size=128`;
 
   const needsCurrentPassword = newPassword.length > 0 || email !== user?.email;
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 512 * 1024) {
+      setError('Η εικόνα πρέπει να είναι μικρότερη από 512KB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => setAvatarPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -89,6 +107,7 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     if (email !== user?.email) body.email = email;
     if (newPassword) body.newPassword = newPassword;
     if (currentPassword) body.currentPassword = currentPassword;
+    if (avatarPreview) body.avatar = avatarPreview;
 
     const res = await fetch('/api/profile', {
       method: 'PUT',
@@ -117,6 +136,32 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Avatar upload */}
+        <div className="flex justify-center mb-2">
+          <div className="relative">
+            <img
+              src={currentAvatar}
+              alt="Avatar"
+              className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-200"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-0 right-0 p-1.5 bg-purple-600 text-white rounded-full shadow-md hover:bg-purple-700 transition-colors"
+              title="Αλλαγή φωτογραφίας"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Ονοματεπώνυμο</label>
           <input
