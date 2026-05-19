@@ -33,7 +33,7 @@ searchRouter.get('/', async (req: Request, res: Response) => {
 
 // UC-SRC-02: get full skill/listing details
 searchRouter.get('/:id', async (req: Request, res: Response) => {
-  const detail = await searchController.getSkillDetails(req.params.id);
+  const detail = await searchController.getSkillDetails(req.params.id as string);
   if (!detail) {
     res.status(404).json({ error: 'Skill not found' });
     return;

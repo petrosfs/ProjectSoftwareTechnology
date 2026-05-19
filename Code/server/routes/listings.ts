@@ -9,7 +9,7 @@ listingsRouter.get('/', async (_req: Request, res: Response) => {
 });
 
 listingsRouter.get('/:id', async (req: Request, res: Response) => {
-  const listing = await listingController.getListing(req.params.id);
+  const listing = await listingController.getListing(req.params.id as string);
   if (!listing) {
     res.status(404).json({ error: 'Listing not found' });
     return;

@@ -78,6 +78,30 @@ async function runMigrations(db: Database): Promise<void> {
     console.log('Migration: added meeting_url to sessions');
   }
 
+  // Recreate purchases table if it doesn't have 'held' status
+  const purchasesInfo = await db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='purchases'");
+  if (purchasesInfo?.sql && !purchasesInfo.sql.includes("'held'")) {
+    await db.exec('PRAGMA foreign_keys = OFF');
+    await db.exec(`
+      CREATE TABLE purchases_new (
+        id TEXT PRIMARY KEY,
+        buyer_id TEXT NOT NULL REFERENCES users(id),
+        seller_id TEXT NOT NULL REFERENCES users(id),
+        listing_id TEXT NOT NULL REFERENCES listings(id),
+        amount REAL NOT NULL,
+        platform_fee REAL DEFAULT 0,
+        status TEXT CHECK(status IN ('held', 'completed', 'failed', 'refunded')) DEFAULT 'held',
+        transaction_ref TEXT,
+        purchased_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+    await db.exec(`INSERT INTO purchases_new SELECT * FROM purchases`);
+    await db.exec('DROP TABLE purchases');
+    await db.exec('ALTER TABLE purchases_new RENAME TO purchases');
+    await db.exec('PRAGMA foreign_keys = ON');
+    console.log('Migration: purchases table updated with held status');
+  }
+
   // Create connections table for existing DBs
   await db.exec(`
     CREATE TABLE IF NOT EXISTS connections (

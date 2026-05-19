@@ -23,12 +23,12 @@ usersRouter.get('/', async (req: Request, res: Response) => {
 
 // Get single user by id (public info)
 usersRouter.get('/:id/skills', async (req: Request, res: Response) => {
-  const skills = await skillController.getUserSkills(req.params.id);
+  const skills = await skillController.getUserSkills(req.params.id as string);
   res.json(skills);
 });
 
 usersRouter.get('/:id/reviews', async (req: Request, res: Response) => {
-  const reviews = await reviewController.getReviews(req.params.id);
+  const reviews = await reviewController.getReviews(req.params.id as string);
   res.json(reviews);
 });
 

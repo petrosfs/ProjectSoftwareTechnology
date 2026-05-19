@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, DollarSign, RefreshCw, Star, Calendar, MessageCircle, Check, Loader2, AlertCircle, ChevronRight, Send, ArrowLeft } from 'lucide-react';
+import { X, DollarSign, RefreshCw, Star, Calendar, MessageCircle, Check, Loader2, AlertCircle, ChevronRight, Send, ArrowLeft, CreditCard, Lock, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { SkillListing } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +17,7 @@ interface ViewListingModalProps {
   listing: SkillListing | null;
 }
 
-type Step = 'view' | 'swapPicker' | 'messageComposer' | 'success';
+type Step = 'view' | 'payment' | 'swapPicker' | 'messageComposer' | 'success';
 
 export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalProps) {
   const navigate = useNavigate();
@@ -32,6 +32,13 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [messageText, setMessageText] = useState('');
+  // Payment form state
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvv, setCvv] = useState('');
+  const [paymentInfo, setPaymentInfo] = useState<{ price: number; platformFee: number; total: number } | null>(null);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -41,6 +48,11 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
       setSelectedSkillId('');
       setError('');
       setMessageText('');
+      setCardNumber('');
+      setCardName('');
+      setExpiry('');
+      setCvv('');
+      setPaymentInfo(null);
     }
   }, [isOpen]);
 
@@ -79,21 +91,92 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
     }
   };
 
-  const handlePurchase = async () => {
-    setSubmitting(true);
+  // Card validation helpers
+  const luhn = (num: string) => {
+    const digits = num.replace(/\D/g, '');
+    let sum = 0, even = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let d = parseInt(digits[i]);
+      if (even) { d *= 2; if (d > 9) d -= 9; }
+      sum += d;
+      even = !even;
+    }
+    return sum % 10 === 0;
+  };
+
+  const isExpiryValid = (val: string) => {
+    const [mm, yy] = val.split('/');
+    if (!mm || !yy || mm.length !== 2 || yy.length !== 2) return false;
+    const month = parseInt(mm), year = 2000 + parseInt(yy);
+    if (month < 1 || month > 12) return false;
+    const now = new Date();
+    return new Date(year, month - 1, 1) >= new Date(now.getFullYear(), now.getMonth(), 1);
+  };
+
+  const formatCardNumber = (val: string) =>
+    val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+
+  const formatExpiry = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 4);
+    return digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+  };
+
+  const openPayment = async () => {
+    if (!listing) return;
+    setCheckingAvailability(true);
     setError('');
     try {
-      const res = await fetch('/api/offers', {
+      const res = await fetch(`/api/payments/listing/${listing.id}`, { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok || !data.available) {
+        setError(data.reason === 'alreadyPurchased'
+          ? 'This skill is currently unavailable — it has already been purchased and is awaiting session completion.'
+          : 'This listing is no longer available.');
+        return;
+      }
+      setPaymentInfo({ price: data.listing.price, platformFee: data.listing.platformFee, total: data.listing.total });
+      setStep('payment');
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  const handlePayAndOrder = async () => {
+    if (!listing) return;
+    setError('');
+    const rawCard = cardNumber.replace(/\s/g, '');
+    if (rawCard.length !== 16) { setError('Card number must be 16 digits.'); return; }
+    if (!luhn(rawCard)) { setError('Invalid card number.'); return; }
+    if (!isExpiryValid(expiry)) { setError('Card has expired or expiry is invalid (MM/YY).'); return; }
+    if (cvv.length < 3) { setError('Invalid security code.'); return; }
+    if (!cardName.trim()) { setError('Cardholder name is required.'); return; }
+    // Simulated decline cases
+    const last4 = rawCard.slice(-4);
+    if (last4 === '0000') { setError('Payment declined: Insufficient funds.'); return; }
+    if (last4 === '0001') { setError('Payment declined: Card refused by issuer.'); return; }
+
+    setSubmitting(true);
+    try {
+      const holdRes = await fetch('/api/payments/hold', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ listingId: listing.id }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Failed to send request');
+      const holdData = await holdRes.json();
+      if (!holdRes.ok) {
+        setError(holdData.reason === 'alreadyPurchased'
+          ? 'This skill was just purchased by someone else.'
+          : holdData.error || 'Payment failed.');
         return;
       }
+      // Create the offer
+      await fetch('/api/offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ listingId: listing.id }),
+      });
       setSuccessType('purchase');
       setStep('success');
     } finally {
@@ -234,6 +317,116 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                   : <><Send className="w-4 h-4" />Send Message</>}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ── Payment step ── */}
+        {step === 'payment' && paymentInfo && (
+          <div className="p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <button onClick={() => { setStep('view'); setError(''); }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <ArrowLeft className="w-4 h-4 text-gray-500" />
+              </button>
+              <div>
+                <h4 className="text-xl font-bold text-gray-900">Secure Payment</h4>
+                <p className="text-sm text-gray-500">{listing?.title}</p>
+              </div>
+            </div>
+
+            {/* Order summary */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+              <div className="flex justify-between text-gray-700">
+                <span>Session price</span><span>€{paymentInfo.price.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Platform fee (10%)</span><span>€{paymentInfo.platformFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-gray-900 border-t pt-2">
+                <span>Total held</span><span>€{paymentInfo.total.toFixed(2)}</span>
+              </div>
+              <p className="text-xs text-gray-400 pt-1 flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Amount is held securely until the session is completed.
+              </p>
+            </div>
+
+            {/* Card form */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Card Number</label>
+                <div className="relative">
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="1234 5678 9012 3456"
+                    value={cardNumber}
+                    onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                    maxLength={19}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Cardholder Name</label>
+                <input
+                  type="text"
+                  placeholder="FULL NAME"
+                  value={cardName}
+                  onChange={e => setCardName(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm uppercase tracking-wider"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Expiry (MM/YY)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="MM/YY"
+                    value={expiry}
+                    onChange={e => setExpiry(formatExpiry(e.target.value))}
+                    maxLength={5}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">CVV</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      placeholder="•••"
+                      value={cvv}
+                      onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      maxLength={4}
+                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />{error}
+              </div>
+            )}
+
+            <button
+              onClick={handlePayAndOrder}
+              disabled={submitting}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+            >
+              {submitting
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
+                : <><Lock className="w-4 h-4" />Pay & Hold €{paymentInfo.total.toFixed(2)}</>}
+            </button>
+            <p className="text-center text-xs text-gray-400">
+              Your payment will be held until the session is completed.
+            </p>
           </div>
         )}
 
@@ -390,8 +583,8 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                   <div className="space-y-3">
                     {listing.price && (
                       <button
-                        onClick={handlePurchase}
-                        disabled={submitting}
+                        onClick={openPayment}
+                        disabled={checkingAvailability}
                         className="w-full p-5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform shadow-lg group disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <div className="flex items-center justify-between">
@@ -405,7 +598,7 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                             </div>
                           </div>
                           <div className="p-2 bg-white/20 rounded-lg group-hover:translate-x-1 transition-transform">
-                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Calendar className="w-5 h-5" />}
+                            {checkingAvailability ? <Loader2 className="w-5 h-5 animate-spin" /> : <Calendar className="w-5 h-5" />}
                           </div>
                         </div>
                       </button>

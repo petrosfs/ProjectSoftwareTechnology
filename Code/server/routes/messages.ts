@@ -16,7 +16,7 @@ messagesRouter.get('/:id', async (req: Request, res: Response) => {
   const userId = req.session.userId;
   if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
   try {
-    const messages = await messagesController.getMessages(req.params.id, userId);
+    const messages = await messagesController.getMessages(req.params.id as string, userId);
     res.json(messages);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });
@@ -41,7 +41,7 @@ messagesRouter.post('/', async (req: Request, res: Response) => {
 messagesRouter.patch('/:id/read', async (req: Request, res: Response) => {
   const userId = req.session.userId;
   if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  await messagesController.markRead(req.params.id, userId);
+  await messagesController.markRead(req.params.id as string, userId);
   res.json({ ok: true });
 });
 
@@ -50,7 +50,7 @@ messagesRouter.delete('/:id', async (req: Request, res: Response) => {
   const userId = req.session.userId;
   if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
   try {
-    await messagesController.deleteConversation(req.params.id, userId);
+    await messagesController.deleteConversation(req.params.id as string, userId);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar, Clock, Video, MessageSquare, User, Plus, Search,
-         Check, X, RefreshCw, AlertCircle, Loader2, MapPin, Star } from 'lucide-react';
+         Check, X, RefreshCw, AlertCircle, Loader2, MapPin, Star, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 
@@ -423,84 +423,113 @@ function ScheduleModal({
 }
 
 // ── Reschedule Modal ────────────────────────────────────────────────────────
-function RescheduleModal({ session, onClose }: { session: Session; onClose: () => void }) {
+function RescheduleModal({
+  session,
+  onClose,
+  onRescheduled,
+}: {
+  session: Session;
+  onClose: () => void;
+  onRescheduled: () => void;
+}) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [note, setNote] = useState('');
   const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSend = async () => {
     if (!date || !time) return;
+    const newScheduledAt = `${date}T${time}:00`;
+    if (new Date(newScheduledAt) <= new Date()) {
+      setError('The new time must be in the future');
+      return;
+    }
     setSending(true);
-    const newDateTime = `${date} at ${time}`;
-    const text = `I'd like to reschedule our "${session.skillTitle}" session (currently ${session.date} at ${session.time}) to ${newDateTime}.${note ? ` Note: ${note}` : ''} Please let me know if this works for you.`;
-    await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ receiverId: session.otherUserId, text }),
-    });
-    setSending(false);
-    setDone(true);
-    setTimeout(onClose, 1500);
+    setError('');
+    try {
+      const res = await fetch(`/api/sessions/${session.id}/reschedule`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ newScheduledAt }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to send reschedule request'); return; }
+
+      // If there's a note, also send it as a message
+      if (note.trim()) {
+        try {
+          await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              receiverId: session.otherUserId,
+              text: `Reschedule note for "${session.skillTitle}" (${date} at ${time}): ${note.trim()}`,
+            }),
+          });
+        } catch { /* non-fatal */ }
+      }
+
+      onRescheduled();
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-gray-900">Request Reschedule</h3>
+          <h3 className="text-lg font-bold text-gray-900">Propose New Time</h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
-        {done ? (
-          <div className="flex flex-col items-center gap-3 py-6">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="w-6 h-6 text-green-600" />
+        <p className="text-sm text-gray-500 mb-4">
+          A reschedule request will be sent to <strong>{session.otherUser}</strong> to approve or reject.
+        </p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New date</label>
+              <input type="date" value={date} min={new Date().toISOString().slice(0, 10)}
+                onChange={e => setDate(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
             </div>
-            <p className="text-gray-700 font-medium">Reschedule request sent!</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New time</label>
+              <input type="time" value={time} onChange={e => setTime(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
+            </div>
           </div>
-        ) : (
-          <>
-            <p className="text-sm text-gray-500 mb-4">
-              This will send a message to <strong>{session.otherUser}</strong> proposing a new time.
-            </p>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New date</label>
-                  <input type="date" value={date} min={new Date().toISOString().slice(0, 10)}
-                    onChange={e => setDate(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">New time</label>
-                  <input type="time" value={time} onChange={e => setTime(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
-                <input type="text" value={note} onChange={e => setNote(e.target.value)}
-                  placeholder="Reason for rescheduling…"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
-              </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Note <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input type="text" value={note} onChange={e => setNote(e.target.value)}
+              placeholder="Reason for rescheduling…"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm" />
+          </div>
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
             </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm">
-                Cancel
-              </button>
-              <button onClick={handleSend} disabled={!date || !time || sending}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity text-sm flex items-center justify-center gap-2">
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Send Request
-              </button>
-            </div>
-          </>
-        )}
+          )}
+        </div>
+        <div className="flex gap-3 mt-5">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm">
+            Cancel
+          </button>
+          <button onClick={handleSend} disabled={!date || !time || sending}
+            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity text-sm flex items-center justify-center gap-2">
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Send Request
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -526,6 +555,7 @@ export function Sessions() {
   const [rescheduleTarget, setRescheduleTarget] = useState<Session | null>(null);
   const [responding, setResponding] = useState<Record<string, boolean>>({});
   const [cancelling, setCancelling] = useState<Record<string, boolean>>({});
+  const [completing, setCompleting] = useState<Record<string, boolean>>({});
   const [successMsg, setSuccessMsg] = useState('');
   const [reviewTarget, setReviewTarget] = useState<Session | null>(null);
   const [reviewedSessions, setReviewedSessions] = useState<Set<string>>(new Set());
@@ -581,6 +611,18 @@ export function Sessions() {
     });
     if (res.ok) setSessions(prev => prev.filter(s => s.id !== sessionId));
     setCancelling(c => ({ ...c, [sessionId]: false }));
+  };
+
+  const handleComplete = async (sessionId: string) => {
+    setCompleting(c => ({ ...c, [sessionId]: true }));
+    const res = await fetch(`/api/sessions/${sessionId}/complete`, {
+      method: 'PATCH', credentials: 'include',
+    });
+    if (res.ok) {
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'completed' } : s));
+      setSuccessMsg('Session marked as completed! Payment has been released to the teacher.');
+    }
+    setCompleting(c => ({ ...c, [sessionId]: false }));
   };
 
   const goToMessages = (otherUserId: string) => {
@@ -886,6 +928,16 @@ export function Sessions() {
                         Reschedule
                       </button>
                     )}
+                    {(session.status === 'confirmed' || session.status === 'upcoming') && (
+                      <button
+                        onClick={() => handleComplete(session.id)}
+                        disabled={completing[session.id]}
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-green-600 border-2 border-green-200 rounded-lg hover:bg-green-50 transition-colors font-semibold text-sm whitespace-nowrap disabled:opacity-50"
+                      >
+                        {completing[session.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Complete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -981,7 +1033,15 @@ export function Sessions() {
         />
       )}
       {rescheduleTarget && (
-        <RescheduleModal session={rescheduleTarget} onClose={() => setRescheduleTarget(null)} />
+        <RescheduleModal
+          session={rescheduleTarget}
+          onClose={() => setRescheduleTarget(null)}
+          onRescheduled={() => {
+            setRescheduleTarget(null);
+            setSuccessMsg('Reschedule request sent! Waiting for the other user to respond.');
+            fetchSessions();
+          }}
+        />
       )}
       {reviewTarget && (
         <LeaveReviewModal

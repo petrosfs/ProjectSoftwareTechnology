@@ -46,7 +46,7 @@ offersRouter.patch('/:id/decision', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'decision must be accepted or rejected' });
       return;
     }
-    const result = await offerController.handleDecision(req.params.id, userId, decision);
+    const result = await offerController.handleDecision(req.params.id as string, userId, decision);
     res.json(result);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });

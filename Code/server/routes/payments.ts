@@ -3,16 +3,12 @@ import paymentController from '../controllers/PaymentController.js';
 
 export const paymentsRouter = Router();
 
-// UC-PAY-02: retrieve skill info and price for confirmation screen
+// GET /api/payments/listing/:listingId — check availability and get price details
 paymentsRouter.get('/listing/:listingId', async (req: Request, res: Response) => {
   const userId = req.session.userId;
-  if (!userId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
-
+  if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
   try {
-    const data = await paymentController.retrieveSkillData(req.params.listingId, userId);
+    const data = await paymentController.retrieveSkillData(req.params.listingId as string, userId);
     if (!data.available) {
       res.status(409).json({ available: false, reason: data.reason });
       return;
@@ -23,28 +19,19 @@ paymentsRouter.get('/listing/:listingId', async (req: Request, res: Response) =>
   }
 });
 
-// UC-PAY-02: process payment and unlock access
-paymentsRouter.post('/pay', async (req: Request, res: Response) => {
+// POST /api/payments/hold — hold payment for a listing
+paymentsRouter.post('/hold', async (req: Request, res: Response) => {
   const userId = req.session.userId;
-  if (!userId) {
-    res.status(401).json({ error: 'Not authenticated' });
-    return;
-  }
-
+  if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const { listingId } = req.body;
+  if (!listingId) { res.status(400).json({ error: 'listingId is required' }); return; }
   try {
-    const { listingId, amount, paymentMethod } = req.body;
-    if (!listingId || !amount || !paymentMethod) {
-      res.status(400).json({ error: 'listingId, amount and paymentMethod are required' });
+    const data = await paymentController.retrieveSkillData(listingId, userId);
+    if (!data.available) {
+      res.status(409).json({ available: false, reason: data.reason });
       return;
     }
-
-    const payment = paymentController.processPayment(Number(amount), paymentMethod);
-    if (!payment.success) {
-      res.status(402).json({ error: 'Payment failed' });
-      return;
-    }
-
-    const result = await paymentController.unlockAccess(listingId, userId, payment.transactionRef);
+    const result = await paymentController.holdPayment(listingId, userId);
     res.status(201).json({ ...result, success: true });
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });

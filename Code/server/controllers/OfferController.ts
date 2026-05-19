@@ -1,7 +1,7 @@
-// UC-BUY-02: Buy Skill Request
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/database.js';
 import connectionController from './ConnectionController.js';
+import paymentController from './PaymentController.js';
 
 export class OfferController {
   // UC-BUY-02: check if a pending offer already exists from buyer for this listing
@@ -57,11 +57,18 @@ export class OfferController {
       throw Object.assign(new Error('Not authorized'), { status: 403 });
     }
 
+    const fullOffer = await db.get(
+      'SELECT listing_id FROM offers WHERE id = ?',
+      offerId
+    );
+
     await db.run('UPDATE offers SET status = ? WHERE id = ?', [decision, offerId]);
     await this.notifyBuyer(offer.buyer_id, offerId, decision);
 
     if (decision === 'accepted') {
       await connectionController.createFromOffer(offerId);
+    } else if (decision === 'rejected' && fullOffer?.listing_id) {
+      await paymentController.refundPayment(fullOffer.listing_id, offer.buyer_id);
     }
 
     return { id: offerId, status: decision };

@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS purchases (
   listing_id TEXT NOT NULL REFERENCES listings(id),
   amount REAL NOT NULL,
   platform_fee REAL DEFAULT 0,
-  status TEXT CHECK(status IN ('completed', 'failed', 'refunded')) DEFAULT 'completed',
+  status TEXT CHECK(status IN ('held', 'completed', 'failed', 'refunded')) DEFAULT 'held',
   transaction_ref TEXT,
   purchased_at TEXT DEFAULT (datetime('now'))
 );

@@ -34,6 +34,6 @@ reviewsRouter.post('/', async (req: Request, res: Response) => {
 reviewsRouter.get('/permission/:sessionId', async (req: Request, res: Response) => {
   const userId = req.session.userId;
   if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  const result = await reviewController.checkPermission(req.params.sessionId, userId);
+  const result = await reviewController.checkPermission(req.params.sessionId as string, userId);
   res.json(result);
 });

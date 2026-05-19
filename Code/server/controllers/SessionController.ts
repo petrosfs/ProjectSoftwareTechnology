@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { getDb } from '../db/database.js';
 import messagesController from './MessagesController.js';
 import { createMeetingUrl } from '../services/MeetingService.js';
+import paymentController from './PaymentController.js';
 
 export class SessionController {
   async getSessionsForUser(userId: string) {
@@ -133,7 +134,7 @@ export class SessionController {
   async cancelSession(sessionId: string, userId: string) {
     const db = await getDb();
     const session = await db.get(
-      'SELECT id, teacher_id, learner_id, status FROM sessions WHERE id = ?',
+      'SELECT id, teacher_id, learner_id, listing_id, status FROM sessions WHERE id = ?',
       sessionId
     );
     if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
@@ -143,7 +144,68 @@ export class SessionController {
     const isParticipant = session.teacher_id === userId || session.learner_id === userId;
     if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
     await db.run('UPDATE sessions SET status = ? WHERE id = ?', ['cancelled', sessionId]);
+    if (session.listing_id) {
+      await paymentController.refundPayment(session.listing_id, session.learner_id);
+    }
     return { id: sessionId, status: 'cancelled' };
+  }
+
+  async rescheduleSession(sessionId: string, userId: string, newScheduledAt: string) {
+    const db = await getDb();
+    const session = await db.get(
+      'SELECT id, teacher_id, learner_id, status, delivery_mode, skill_title, meeting_url FROM sessions WHERE id = ?',
+      sessionId
+    );
+    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (!['pending', 'confirmed', 'upcoming'].includes(session.status)) {
+      throw Object.assign(new Error('Session cannot be rescheduled'), { status: 400 });
+    }
+    const isParticipant = session.teacher_id === userId || session.learner_id === userId;
+    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+
+    // Generate meeting URL if online session is missing one (e.g. legacy rows)
+    const meetingUrl = (session.delivery_mode === 'online' && !session.meeting_url)
+      ? createMeetingUrl(session.skill_title)
+      : session.meeting_url;
+
+    await db.run(
+      'UPDATE sessions SET scheduled_at = ?, status = ?, initiated_by_id = ?, meeting_url = ? WHERE id = ?',
+      [newScheduledAt, 'pending', userId, meetingUrl, sessionId]
+    );
+
+    // Notify the other participant
+    const receiverId = session.teacher_id === userId ? session.learner_id : session.teacher_id;
+    const dateStr = newScheduledAt.slice(0, 10);
+    const timeStr = newScheduledAt.slice(11, 16);
+    try {
+      await db.run(
+        `INSERT INTO notifications (id, user_id, type, reference_id, body)
+         VALUES (?, ?, 'in-app', ?, ?)`,
+        [randomUUID(), receiverId, sessionId,
+         `Αίτημα αναπρογραμματισμού για το session "${session.skill_title}" → ${dateStr} ${timeStr}. Δείτε το Sessions.`]
+      );
+    } catch { /* notification failure is non-fatal */ }
+
+    return { id: sessionId, status: 'pending', scheduledAt: newScheduledAt };
+  }
+
+  async completeSession(sessionId: string, userId: string) {
+    const db = await getDb();
+    const session = await db.get(
+      'SELECT id, teacher_id, learner_id, listing_id, status FROM sessions WHERE id = ?',
+      sessionId
+    );
+    if (!session) throw Object.assign(new Error('Session not found'), { status: 404 });
+    if (!['confirmed', 'upcoming'].includes(session.status)) {
+      throw Object.assign(new Error('Session cannot be completed in its current state'), { status: 400 });
+    }
+    const isParticipant = session.teacher_id === userId || session.learner_id === userId;
+    if (!isParticipant) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    await db.run('UPDATE sessions SET status = ? WHERE id = ?', ['completed', sessionId]);
+    if (session.listing_id) {
+      await paymentController.releasePayment(session.listing_id, session.learner_id);
+    }
+    return { id: sessionId, status: 'completed' };
   }
 }
 

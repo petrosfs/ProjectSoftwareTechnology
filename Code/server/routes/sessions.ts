@@ -45,7 +45,7 @@ sessionsRouter.patch('/:id/response', async (req: Request, res: Response) => {
     if (response !== 'accepted' && response !== 'rejected') {
       res.status(400).json({ error: 'response must be accepted or rejected' }); return;
     }
-    const result = await sessionController.handleResponse(req.params.id, userId, response);
+    const result = await sessionController.handleResponse(req.params.id as string, userId, response);
     res.json(result);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });
@@ -57,7 +57,33 @@ sessionsRouter.patch('/:id/cancel', async (req: Request, res: Response) => {
   const userId = req.session.userId;
   if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
   try {
-    const result = await sessionController.cancelSession(req.params.id, userId);
+    const result = await sessionController.cancelSession(req.params.id as string, userId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/sessions/:id/reschedule — propose a new time (resets to pending)
+sessionsRouter.patch('/:id/reschedule', async (req: Request, res: Response) => {
+  const userId = req.session.userId;
+  if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  try {
+    const { newScheduledAt } = req.body;
+    if (!newScheduledAt) { res.status(400).json({ error: 'newScheduledAt is required' }); return; }
+    const result = await sessionController.rescheduleSession(req.params.id as string, userId, newScheduledAt);
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/sessions/:id/complete — mark a session as completed and release payment
+sessionsRouter.patch('/:id/complete', async (req: Request, res: Response) => {
+  const userId = req.session.userId;
+  if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  try {
+    const result = await sessionController.completeSession(req.params.id as string, userId);
     res.json(result);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });

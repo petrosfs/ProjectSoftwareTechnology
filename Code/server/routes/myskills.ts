@@ -40,7 +40,7 @@ mySkillsRouter.patch('/:skillId', async (req: Request, res: Response) => {
   }
   try {
     const { name, level, yearsOfExperience } = req.body;
-    const skill = await mySkillsController.updateSkill(userId, req.params.skillId, { name, level, yearsOfExperience });
+    const skill = await mySkillsController.updateSkill(userId, req.params.skillId as string, { name, level, yearsOfExperience });
     res.json(skill);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });
@@ -54,6 +54,6 @@ mySkillsRouter.delete('/:skillId', async (req: Request, res: Response) => {
     res.status(401).json({ error: 'Not authenticated' });
     return;
   }
-  await mySkillsController.deleteSkill(userId, req.params.skillId);
+  await mySkillsController.deleteSkill(userId, req.params.skillId as string);
   res.json({ ok: true });
 });
