@@ -6,11 +6,14 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function toPostgres(sql: string, params?: unknown[]): { text: string; values: unknown[] } {
+function toPostgres(sql: string, params?: unknown | unknown[]): { text: string; values: unknown[] } {
   let i = 0;
+  const values =
+    params === undefined || params === null ? [] :
+    Array.isArray(params) ? params : [params];
   return {
     text: sql.replace(/\?/g, () => `$${++i}`),
-    values: params ?? [],
+    values,
   };
 }
 
@@ -20,15 +23,15 @@ const pool = new Pool({
 });
 
 export const db = {
-  async get<T = any>(sql: string, params?: unknown[]): Promise<T | null> {
+  async get<T = any>(sql: string, params?: unknown | unknown[]): Promise<T | null> {
     const { rows } = await pool.query(toPostgres(sql, params));
     return (rows[0] ?? null) as T | null;
   },
-  async all<T = any>(sql: string, params?: unknown[]): Promise<T[]> {
+  async all<T = any>(sql: string, params?: unknown | unknown[]): Promise<T[]> {
     const { rows } = await pool.query(toPostgres(sql, params));
     return rows as T[];
   },
-  async run(sql: string, params?: unknown[]): Promise<void> {
+  async run(sql: string, params?: unknown | unknown[]): Promise<void> {
     await pool.query(toPostgres(sql, params));
   },
   async exec(sql: string): Promise<void> {
