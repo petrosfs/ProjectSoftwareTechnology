@@ -21,7 +21,8 @@
 - Lucide icons
 - TypeScript
 - Express
-- SQLite
+- PostgreSQL
+- pg (node-postgres)
 - bcrypt
 - express-session
 - Microsoft Word
@@ -37,7 +38,7 @@
 - `Code/index.html`: κεντρικό HTML αρχείο εφαρμογής
 - `Code/server/controllers`: backend controllers (Auth, Listings, Sessions, Reviews, Skills)
 - `Code/server/routes`: Express API routes
-- `Code/server/db`: βάση δεδομένων SQLite και seed δεδομένων
+- `Code/server/db`: σύνδεση PostgreSQL (Railway), schema και seed δεδομένων
 - `Code/server/middleware`: middleware διαχείρισης σφαλμάτων
 
 Το hosting της πλατφόρμας γίνεται στο Railway και υπάρχει πρόσβαση στους χρήστες μέσω της παρακάτω διεύθυνσης https://projectsoftwaretechnology-production.up.railway.app
@@ -71,3 +72,8 @@
 - Εγγραφή και σύνδεση χρηστών με session-based authentication
 - Προβολή προφίλ χρήστη με δεξιότητες, αξιολογήσεις και sessions
 - Προβολή και διαχείριση προγραμματισμένων συνεδριών
+- Σύστημα μηνυμάτων μεταξύ χρηστών (συνομιλίες, αποστολή/λήψη)
+- Αξιολογήσεις (reviews) μετά από ολοκληρωμένες συνεδρίες
+- Ειδοποιήσεις (notifications) για νέα μηνύματα και αιτήματα
+- Σύστημα προσφορών (offers) και skill swaps
+- Πληρωμές με μηχανισμό escrow (κράτηση & αποδέσμευση)
