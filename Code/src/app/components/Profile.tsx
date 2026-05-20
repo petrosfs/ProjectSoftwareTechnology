@@ -61,11 +61,11 @@ function FieldError({ msg }: { msg: string }) {
 
 function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { user } = useAuth();
-  const [fullName, setFullName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
-  const [newPassword, setNewPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
+  const [changePassword, setChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,8 +74,6 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
   const currentAvatar = avatarPreview
     ?? user?.avatar
     ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name ?? 'U')}&background=7c3aed&color=fff&size=128`;
-
-  const needsCurrentPassword = newPassword.length > 0 || email !== user?.email;
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,20 +91,19 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
     e.preventDefault();
     setError('');
 
-    if (needsCurrentPassword && !currentPassword) {
-      setError('Απαιτείται ο τρέχων κωδικός για να αλλάξετε email ή κωδικό');
+    if (!currentPassword) {
+      setError('Απαιτείται ο τρέχων κωδικός για επιβεβαίωση αλλαγών');
       return;
     }
-    if (newPassword && newPassword.length < 6) {
+    if (changePassword && newPassword.length < 6) {
       setError('Ο νέος κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες');
       return;
     }
 
     setLoading(true);
-    const body: Record<string, string> = { fullName, bio };
+    const body: Record<string, string> = { bio, currentPassword };
     if (email !== user?.email) body.email = email;
-    if (newPassword) body.newPassword = newPassword;
-    if (currentPassword) body.currentPassword = currentPassword;
+    if (changePassword && newPassword) body.newPassword = newPassword;
     if (avatarPreview) body.avatar = avatarPreview;
 
     const res = await fetch('/api/profile', {
@@ -164,13 +161,9 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Ονοματεπώνυμο</label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400"
-          />
+          <p className="w-full px-4 py-2.5 border border-gray-100 rounded-xl bg-gray-50 text-gray-500 text-sm">
+            {user?.name}
+          </p>
         </div>
 
         <div>
@@ -197,28 +190,37 @@ function EditProfileModal({ onClose, onSaved }: { onClose: () => void; onSaved: 
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Νέος κωδικός <span className="text-gray-400 font-normal">(προαιρετικό)</span>
+            Τρέχων κωδικός <span className="text-red-400">*</span>
           </label>
           <input
             type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
             className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400"
             placeholder="••••••••"
           />
         </div>
 
-        {needsCurrentPassword && (
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={changePassword}
+            onChange={(e) => { setChangePassword(e.target.checked); if (!e.target.checked) setNewPassword(''); }}
+            className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-400"
+          />
+          <span className="text-sm text-gray-700">Αλλαγή κωδικού πρόσβασης</span>
+        </label>
+
+        {changePassword && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Τρέχων κωδικός <span className="text-red-400">*</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Νέος κωδικός</label>
             <input
               type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400"
               placeholder="••••••••"
+              autoFocus
             />
           </div>
         )}

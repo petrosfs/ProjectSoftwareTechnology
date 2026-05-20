@@ -29,12 +29,15 @@ profileRouter.put('/', async (req: Request, res: Response) => {
   try {
     const { fullName, email, newPassword, currentPassword, bio, avatar } = req.body;
 
-    if (currentPassword) {
-      const passwordOK = await profileController.verifyCurrentPassword(userId, currentPassword);
-      if (!passwordOK) {
-        res.status(403).json({ error: 'Λανθασμένος τρέχων κωδικός' });
-        return;
-      }
+    if (!currentPassword) {
+      res.status(400).json({ error: 'Απαιτείται ο τρέχων κωδικός' });
+      return;
+    }
+
+    const passwordOK = await profileController.verifyCurrentPassword(userId, currentPassword);
+    if (!passwordOK) {
+      res.status(403).json({ error: 'Λανθασμένος τρέχων κωδικός' });
+      return;
     }
 
     if (email) {
