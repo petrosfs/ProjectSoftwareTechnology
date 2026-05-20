@@ -14,7 +14,7 @@ usersRouter.get('/', async (req: Request, res: Response) => {
   const kw = `%${q}%`;
   const users = await db.all(
     `SELECT id, name, email, avatar, rating FROM users
-     WHERE id != ? AND (name LIKE ? OR email LIKE ?)
+     WHERE id != ? AND (name ILIKE ? OR email ILIKE ?)
      ORDER BY name ASC LIMIT 10`,
     [userId, kw, kw]
   );

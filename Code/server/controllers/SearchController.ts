@@ -12,7 +12,7 @@ export class SearchController {
              u.name AS user_name, u.avatar AS user_avatar, u.rating AS user_rating
       FROM listings l
       JOIN users u ON l.user_id = u.id
-      WHERE l.title LIKE ? OR l.description LIKE ? OR l.category LIKE ?
+      WHERE l.title ILIKE ? OR l.description ILIKE ? OR l.category ILIKE ?
       ORDER BY l.created_at DESC
     `, [like, like, like]);
     return rows.map(this.mapRow);

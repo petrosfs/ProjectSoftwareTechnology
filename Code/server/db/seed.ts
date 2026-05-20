@@ -218,6 +218,20 @@ export async function seedData(): Promise<void> {
         [r.id, r.session_id, r.from_user_id, r.to_user_id, r.rating, r.comment, r.skill_title, r.created_at]
       );
     }
+    // Recalculate ratings for each reviewed user so profile pages show correct stars
+    const reviewedIds = [...new Set(SEED_REVIEWS.map(r => r.to_user_id))];
+    for (const uid of reviewedIds) {
+      const agg = await db.get(
+        'SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt FROM reviews WHERE to_user_id = ?',
+        uid
+      );
+      if (agg && agg.avg_rating !== null) {
+        await db.run(
+          'UPDATE users SET rating = ?, reviews_count = ? WHERE id = ?',
+          [Number(Number(agg.avg_rating).toFixed(2)), Number(agg.cnt), uid]
+        );
+      }
+    }
     console.log('Seeded reviews');
   }
 
@@ -229,12 +243,18 @@ export async function seedData(): Promise<void> {
         [c.id, c.user1_id, c.user2_id, c.last_at]
       );
     }
+    console.log('Seeded conversations');
+  }
+
+  // Seed messages independently so they are restored even if only conversations existed
+  const anyMsg = await db.get('SELECT id FROM messages LIMIT 1');
+  if (!anyMsg) {
     for (const m of SEED_MESSAGES) {
       await db.run(
         'INSERT INTO messages (id, conversation_id, sender_id, text, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?)',
         [m.id, m.conv, m.sender, m.text, m.read, m.at]
       );
     }
-    console.log('Seeded conversations and messages');
+    console.log('Seeded messages');
   }
 }
