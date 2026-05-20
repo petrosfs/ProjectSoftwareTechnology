@@ -84,7 +84,7 @@ export class ReviewController {
     );
     await db.run(
       'UPDATE users SET rating = ?, reviews_count = ? WHERE id = ?',
-      [Number(agg.avg_rating.toFixed(2)), agg.cnt, data.revieweeId]
+      [Number(Number(agg.avg_rating).toFixed(2)), Number(agg.cnt), data.revieweeId]
     );
 
     // Notify reviewee
