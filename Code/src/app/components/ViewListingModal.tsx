@@ -17,7 +17,7 @@ interface ViewListingModalProps {
   listing: SkillListing | null;
 }
 
-type Step = 'view' | 'payment' | 'swapPicker' | 'messageComposer' | 'success';
+type Step = 'view' | 'payment' | 'swapPicker' | 'messageComposer' | 'teachOffer' | 'success';
 
 export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalProps) {
   const navigate = useNavigate();
@@ -25,13 +25,15 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [step, setStep] = useState<Step>('view');
-  const [successType, setSuccessType] = useState<'purchase' | 'swap' | null>(null);
+  const [successType, setSuccessType] = useState<'purchase' | 'swap' | 'teachPrice' | 'teachSwap' | null>(null);
   const [mySkills, setMySkills] = useState<UserSkill[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState('');
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [messageText, setMessageText] = useState('');
+  const [teachMode, setTeachMode] = useState<'price' | 'swap'>('price');
+  const [proposedPrice, setProposedPrice] = useState('');
   // Payment form state
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
@@ -53,6 +55,8 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
       setExpiry('');
       setCvv('');
       setPaymentInfo(null);
+      setTeachMode('price');
+      setProposedPrice('');
     }
   }, [isOpen]);
 
@@ -196,6 +200,45 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
     setStep('swapPicker');
   };
 
+  const loadSkillsIfNeeded = async () => {
+    if (mySkills.length > 0) return;
+    setLoadingSkills(true);
+    try {
+      const res = await fetch('/api/myskills', { credentials: 'include' });
+      if (res.ok) setMySkills(await res.json());
+    } finally {
+      setLoadingSkills(false);
+    }
+  };
+
+  const handleTeachPriceOffer = async () => {
+    const price = Number(proposedPrice);
+    if (!proposedPrice || isNaN(price) || price <= 0) {
+      setError('Εισάγετε έγκυρη τιμή ανά session (> 0).');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          listingId: listing!.id,
+          proposedPrice: price,
+          message: messageText.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Αποτυχία αποστολής πρότασης.'); return; }
+      setSuccessType('teachPrice');
+      setStep('success');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSwap = async () => {
     if (!selectedSkillId) { setError('Please select a skill to offer'); return; }
     setSubmitting(true);
@@ -216,7 +259,7 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
         setError(data.error || 'Failed to send swap request');
         return;
       }
-      setSuccessType('swap');
+      setSuccessType(listing!.type === 'request' ? 'teachSwap' : 'swap');
       setStep('success');
     } finally {
       setSubmitting(false);
@@ -432,6 +475,155 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
           </div>
         )}
 
+        {/* ── Teach offer step (for request listings) ── */}
+        {step === 'teachOffer' && (
+          <div className="p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setStep('view'); setError(''); }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4 text-gray-500" />
+              </button>
+              <div>
+                <h4 className="text-xl font-bold text-gray-900">Offer to Teach</h4>
+                <p className="text-sm text-gray-500">to <strong>{listing.userName}</strong></p>
+              </div>
+            </div>
+
+            {/* Tab selector */}
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+              <button
+                onClick={() => { setTeachMode('price'); setError(''); }}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  teachMode === 'price' ? 'bg-white text-purple-700 shadow' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <DollarSign className="w-4 h-4 inline mr-1" />
+                Propose a Price
+              </button>
+              <button
+                onClick={() => { setTeachMode('swap'); setError(''); loadSkillsIfNeeded(); }}
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  teachMode === 'swap' ? 'bg-white text-purple-700 shadow' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <RefreshCw className="w-4 h-4 inline mr-1" />
+                Offer a Swap
+              </button>
+            </div>
+
+            {/* Price mode */}
+            {teachMode === 'price' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Your rate per session (€) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">€</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="π.χ. 30"
+                      value={proposedPrice}
+                      onChange={e => setProposedPrice(e.target.value)}
+                      className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Message (προαιρετικό)
+                  </label>
+                  <textarea
+                    value={messageText}
+                    onChange={e => setMessageText(e.target.value)}
+                    placeholder={`Hi ${listing.userName.split(' ')[0]}, I can help you learn "${listing.title}"…`}
+                    rows={3}
+                    maxLength={500}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm resize-none"
+                  />
+                  <p className="text-xs text-gray-400 text-right mt-0.5">{messageText.length}/500</p>
+                </div>
+              </div>
+            )}
+
+            {/* Swap mode */}
+            {teachMode === 'swap' && (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-500">
+                  Επίλεξε ένα από τα skills σου για να προτείνεις ανταλλαγή με <strong>{listing.userName}</strong>.
+                </p>
+                {loadingSkills ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                  </div>
+                ) : mySkills.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>Δεν έχεις skills στο προφίλ σου.</p>
+                    <p className="text-sm mt-1">Πρόσθεσε skills από τη σελίδα Προφίλ.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {mySkills.map(skill => (
+                      <button
+                        key={skill.id}
+                        onClick={() => setSelectedSkillId(skill.id)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${
+                          selectedSkillId === skill.id
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-purple-300'
+                        }`}
+                      >
+                        <div>
+                          <p className="font-semibold text-gray-900">{skill.name}</p>
+                          <p className="text-xs text-gray-500">{skill.level} · {skill.yearsOfExperience} yr{skill.yearsOfExperience !== 1 ? 's' : ''}</p>
+                        </div>
+                        {selectedSkillId === skill.id && <Check className="w-5 h-5 text-purple-600 flex-shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setStep('view'); setError(''); }}
+                className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Πίσω
+              </button>
+              {teachMode === 'price' ? (
+                <button
+                  onClick={handleTeachPriceOffer}
+                  disabled={submitting || !proposedPrice}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+                >
+                  {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Αποστολή…</> : <><Send className="w-4 h-4" />Αποστολή Πρότασης</>}
+                </button>
+              ) : (
+                <button
+                  onClick={handleSwap}
+                  disabled={!selectedSkillId || submitting || mySkills.length === 0}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
+                >
+                  {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Αποστολή…</> : <><RefreshCw className="w-4 h-4" />Πρόταση Ανταλλαγής</>}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Success state ── */}
         {step === 'success' && (
           <div className="p-8 flex flex-col items-center text-center gap-4">
@@ -439,10 +631,17 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
               <Check className="w-10 h-10 text-green-600" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900">
-              {successType === 'purchase' ? 'Request Sent!' : 'Swap Request Sent!'}
+              {successType === 'teachPrice' ? 'Πρόταση Εστάλη!'
+                : successType === 'teachSwap' ? 'Πρόταση Ανταλλαγής Εστάλη!'
+                : successType === 'purchase' ? 'Request Sent!'
+                : 'Swap Request Sent!'}
             </h3>
             <p className="text-gray-600 max-w-sm">
-              {successType === 'purchase'
+              {successType === 'teachPrice'
+                ? `Η πρόταση διδασκαλίας στάλθηκε στον/στην ${listing.userName}. Θα λάβεις ειδοποίηση όταν απαντήσει.`
+                : successType === 'teachSwap'
+                ? `Η πρόταση ανταλλαγής στάλθηκε στον/στην ${listing.userName}. Θα λάβεις ειδοποίηση όταν απαντήσει.`
+                : successType === 'purchase'
                 ? `Your purchase request has been forwarded to ${listing.userName}. They will respond shortly.`
                 : `Your swap request has been forwarded to ${listing.userName}. They will review your offer and respond.`}
             </p>
@@ -581,18 +780,18 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                   <p className="text-yellow-800 font-medium">This is your own listing.</p>
                 </div>
               ) : listing.type === 'request' ? (
-                /* ── Request listing: viewer can only offer to teach ── */
+                /* ── Request listing: viewer proposes price or swap ── */
                 <>
                   <h4 className="font-bold text-gray-900 text-lg">Can you help?</h4>
                   <p className="text-sm text-gray-500">
-                    {listing.userName} is looking for someone to teach them this skill. Send them a message to offer your help.
+                    Ο/Η {listing.userName} αναζητά κάποιον να τον/τη διδάξει αυτό το skill. Πρότεινε τιμή ή ανταλλαγή.
                   </p>
                   <button
-                    onClick={() => setStep('messageComposer')}
+                    onClick={() => setStep('teachOffer')}
                     className="w-full p-5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform shadow-lg"
                   >
                     <div className="flex items-center justify-center space-x-2">
-                      <MessageCircle className="w-5 h-5" />
+                      <ChevronRight className="w-5 h-5" />
                       <span className="font-semibold">Offer to Teach</span>
                     </div>
                   </button>

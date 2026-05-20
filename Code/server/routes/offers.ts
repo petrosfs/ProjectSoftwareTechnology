@@ -20,12 +20,17 @@ offersRouter.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const { listingId, message } = req.body;
+    const { listingId, message, proposedPrice } = req.body;
     if (!listingId) {
       res.status(400).json({ error: 'listingId is required' });
       return;
     }
-    const offer = await offerController.saveOffer({ buyerId: userId, listingId, message });
+    const offer = await offerController.saveOffer({
+      fromUserId: userId,
+      listingId,
+      message,
+      proposedPrice: proposedPrice != null ? Number(proposedPrice) : null,
+    });
     res.status(201).json(offer);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });
@@ -46,7 +51,7 @@ offersRouter.patch('/:id/decision', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'decision must be accepted or rejected' });
       return;
     }
-    const result = await offerController.handleDecision(req.params.id as string, userId, decision);
+    const result = await offerController.handleDecision(req.params.id as string, userId as string, decision);
     res.json(result);
   } catch (err: any) {
     res.status(err.status ?? 500).json({ error: err.message });

@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS offers (
   to_user_id TEXT REFERENCES users(id),
   message TEXT,
   swap_skill TEXT,
+  proposed_price REAL,
   status TEXT CHECK(status IN ('pending', 'accepted', 'rejected')) DEFAULT 'pending',
   created_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 );

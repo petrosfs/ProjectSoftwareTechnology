@@ -50,6 +50,7 @@ async function runMigrations(): Promise<void> {
     ALTER TABLE conversations ADD COLUMN IF NOT EXISTS
       last_message_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
   `);
+  await pool.query(`ALTER TABLE offers ADD COLUMN IF NOT EXISTS proposed_price REAL`);
   // Recalculate rating/reviews_count for all users from actual review data
   await pool.query(`
     UPDATE users u
