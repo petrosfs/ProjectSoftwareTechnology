@@ -9,12 +9,14 @@ export function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
   const [listings, setListings] = useState<any[]>([]);
+  const [isLoadingListings, setIsLoadingListings] = useState(true);
   const [platformStats, setPlatformStats] = useState<{ activeSkills: number; activeUsers: number; completedSessions: number; avgRating: number } | null>(null);
 
   useEffect(() => {
     fetch('/api/listings', { credentials: 'include' })
       .then((r) => r.json())
-      .then((data) => setListings(Array.isArray(data) ? data : []));
+      .then((data) => { setListings(Array.isArray(data) ? data : []); setIsLoadingListings(false); })
+      .catch(() => setIsLoadingListings(false));
     fetch('/api/stats', { credentials: 'include' })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data) setPlatformStats(data); });
@@ -109,10 +111,14 @@ export function Dashboard() {
           </Link>
         </div>
 
-        {filteredListings.length === 0 ? (
+        {isLoadingListings ? (
+          <div className="text-center py-12 bg-white/50 rounded-2xl">
+            <p className="text-gray-500 text-lg">Loading skills...</p>
+          </div>
+        ) : filteredListings.length === 0 ? (
           <div className="text-center py-12 bg-white/50 rounded-2xl">
             <p className="text-gray-500 text-lg">
-              {listings.length === 0 ? 'Loading skills...' : 'No skills found matching your search.'}
+              {searchQuery ? 'No skills found matching your search.' : 'No skills available yet.'}
             </p>
           </div>
         ) : (
