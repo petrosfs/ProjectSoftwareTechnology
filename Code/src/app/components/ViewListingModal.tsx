@@ -536,7 +536,7 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                 <h3 className="font-bold text-gray-900 text-lg">{listing.userName}</h3>
                 <div className="flex items-center space-x-1">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold text-gray-700">{listing.userRating.toFixed(1)}</span>
+                  <span className="font-semibold text-gray-700">{(listing.userRating ?? 0).toFixed(1)}</span>
                   <span className="text-sm text-gray-500">rating</span>
                 </div>
               </div>

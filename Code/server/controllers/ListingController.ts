@@ -77,7 +77,7 @@ export class ListingController {
       userId: row.user_id,
       userName: row.user_name,
       userAvatar: row.user_avatar,
-      userRating: row.user_rating,
+      userRating: row.user_rating ?? 0,
     };
   }
 }

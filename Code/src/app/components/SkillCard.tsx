@@ -26,12 +26,13 @@ export function SkillCard({ listing }: SkillCardProps) {
               src={listing.userAvatar}
               alt={listing.userName}
               className="w-12 h-12 rounded-full object-cover ring-2 ring-purple-200"
+              onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(listing.userName)}&background=7c3aed&color=fff`; }}
             />
             <div>
               <h3 className="font-semibold text-gray-900">{listing.userName}</h3>
               <div className="flex items-center space-x-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm text-gray-600">{listing.userRating.toFixed(1)}</span>
+                <span className="text-sm text-gray-600">{(listing.userRating ?? 0).toFixed(1)}</span>
               </div>
             </div>
           </div>
