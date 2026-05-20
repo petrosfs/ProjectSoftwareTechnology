@@ -57,11 +57,11 @@ async function runMigrations(): Promise<void> {
       rating = COALESCE(agg.avg_rating, 0),
       reviews_count = COALESCE(agg.cnt, 0)
     FROM (
-      SELECT reviewee_id, AVG(rating)::NUMERIC(4,2) AS avg_rating, COUNT(*)::INTEGER AS cnt
+      SELECT to_user_id, AVG(rating)::NUMERIC(4,2) AS avg_rating, COUNT(*)::INTEGER AS cnt
       FROM reviews
-      GROUP BY reviewee_id
+      GROUP BY to_user_id
     ) agg
-    WHERE u.id = agg.reviewee_id
+    WHERE u.id = agg.to_user_id
   `);
 }
 
