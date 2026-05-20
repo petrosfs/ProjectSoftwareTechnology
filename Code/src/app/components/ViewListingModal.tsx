@@ -285,7 +285,9 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
                 }}
-                placeholder={`Hi ${listing.userName.split(' ')[0]}, I'm interested in your "${listing.title}" listing…`}
+                placeholder={listing.type === 'request'
+                  ? `Hi ${listing.userName.split(' ')[0]}, I can help you learn "${listing.title}"…`
+                  : `Hi ${listing.userName.split(' ')[0]}, I'm interested in your "${listing.title}" listing…`}
                 rows={4}
                 maxLength={1000}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm resize-none"
@@ -548,27 +550,29 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
               <p className="text-gray-600 leading-relaxed">{listing.description}</p>
             </div>
 
-            {/* Pricing */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {listing.price && (
-                <div className="p-4 bg-green-50 rounded-xl border-2 border-green-200">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <DollarSign className="w-5 h-5 text-green-600" />
-                    <span className="font-bold text-gray-900">Price per Session</span>
+            {/* Pricing — only for offer listings */}
+            {listing.type === 'offer' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {listing.price && (
+                  <div className="p-4 bg-green-50 rounded-xl border-2 border-green-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      <span className="font-bold text-gray-900">Price per Session</span>
+                    </div>
+                    <p className="text-2xl font-bold text-green-600">${listing.price}</p>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">${listing.price}</p>
-                </div>
-              )}
-              {listing.swapAvailable && (
-                <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <RefreshCw className="w-5 h-5 text-purple-600" />
-                    <span className="font-bold text-gray-900">Swap Available</span>
+                )}
+                {listing.swapAvailable && (
+                  <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <RefreshCw className="w-5 h-5 text-purple-600" />
+                      <span className="font-bold text-gray-900">Swap Available</span>
+                    </div>
+                    <p className="text-sm text-gray-600">Exchange skills instead of payment</p>
                   </div>
-                  <p className="text-sm text-gray-600">Exchange skills instead of payment</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Actions */}
             <div className="space-y-4 pt-4 border-t-2 border-purple-100">
@@ -576,7 +580,31 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
                 <div className="text-center p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
                   <p className="text-yellow-800 font-medium">This is your own listing.</p>
                 </div>
+              ) : listing.type === 'request' ? (
+                /* ── Request listing: viewer can only offer to teach ── */
+                <>
+                  <h4 className="font-bold text-gray-900 text-lg">Can you help?</h4>
+                  <p className="text-sm text-gray-500">
+                    {listing.userName} is looking for someone to teach them this skill. Send them a message to offer your help.
+                  </p>
+                  <button
+                    onClick={() => setStep('messageComposer')}
+                    className="w-full p-5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:scale-105 transition-transform shadow-lg"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <MessageCircle className="w-5 h-5" />
+                      <span className="font-semibold">Offer to Teach</span>
+                    </div>
+                  </button>
+                  {error && (
+                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {error}
+                    </div>
+                  )}
+                </>
               ) : (
+                /* ── Offer listing: purchase / swap / message ── */
                 <>
                   <h4 className="font-bold text-gray-900 text-lg">How would you like to proceed?</h4>
 

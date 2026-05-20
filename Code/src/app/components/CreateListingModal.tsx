@@ -145,52 +145,50 @@ export function CreateListingModal({ isOpen, onClose, type, onSuccess }: CreateL
             </select>
           </div>
 
-          {/* Price and Swap */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Price */}
-            <div className="space-y-2">
-              <label className="block font-semibold text-gray-900 flex items-center space-x-2">
-                <DollarSign className="w-4 h-4" />
-                <span>Price per Session (optional)</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  $
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="5"
-                  placeholder="0"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full pl-8 pr-4 py-3 rounded-xl border-2 border-purple-200 focus:border-purple-400 focus:outline-none"
-                />
+          {/* Price and Swap — only for offer listings */}
+          {type === 'offer' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Price */}
+              <div className="space-y-2">
+                <label className="block font-semibold text-gray-900 flex items-center space-x-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span>Price per Session (optional)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="5"
+                    placeholder="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="w-full pl-8 pr-4 py-3 rounded-xl border-2 border-purple-200 focus:border-purple-400 focus:outline-none"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Leave empty if offering for free</p>
               </div>
-              <p className="text-xs text-gray-500">Leave empty if offering for free</p>
-            </div>
 
-            {/* Swap Available */}
-            <div className="space-y-2">
-              <label className="block font-semibold text-gray-900 flex items-center space-x-2">
-                <RefreshCw className="w-4 h-4" />
-                <span>Skill Swap</span>
-              </label>
-              <label className="flex items-center space-x-3 cursor-pointer bg-purple-50 px-4 py-3 rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-colors h-[52px]">
-                <input
-                  type="checkbox"
-                  checked={formData.swapAvailable}
-                  onChange={(e) => setFormData({ ...formData, swapAvailable: e.target.checked })}
-                  className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-400"
-                />
-                <span className="text-gray-700">
-                  {type === 'offer'
-                    ? 'Open to skill swaps'
-                    : 'Can offer skill swap'}
-                </span>
-              </label>
+              {/* Swap Available */}
+              <div className="space-y-2">
+                <label className="block font-semibold text-gray-900 flex items-center space-x-2">
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Skill Swap</span>
+                </label>
+                <label className="flex items-center space-x-3 cursor-pointer bg-purple-50 px-4 py-3 rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-colors h-[52px]">
+                  <input
+                    type="checkbox"
+                    checked={formData.swapAvailable}
+                    onChange={(e) => setFormData({ ...formData, swapAvailable: e.target.checked })}
+                    className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-400"
+                  />
+                  <span className="text-gray-700">Open to skill swaps</span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Info Box */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-purple-100 rounded-xl p-4">
