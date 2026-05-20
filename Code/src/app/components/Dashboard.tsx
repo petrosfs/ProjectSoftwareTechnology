@@ -9,11 +9,15 @@ export function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
   const [listings, setListings] = useState<any[]>([]);
+  const [platformStats, setPlatformStats] = useState({ activeSkills: 0, activeUsers: 0, completedSessions: 0, avgRating: 0 });
 
   useEffect(() => {
     fetch('/api/listings', { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => setListings(Array.isArray(data) ? data : []));
+    fetch('/api/stats', { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setPlatformStats(data); });
   }, []);
 
   const filteredListings = listings.filter((listing) =>
@@ -23,10 +27,10 @@ export function Dashboard() {
   );
 
   const stats = [
-    { icon: BookOpen,   label: 'Active Skills',    value: '1,234', color: 'from-blue-500 to-blue-600' },
-    { icon: Users,      label: 'Active Users',      value: '5,678', color: 'from-purple-500 to-purple-600' },
-    { icon: TrendingUp, label: 'Sessions Today',    value: '289',   color: 'from-pink-500 to-pink-600' },
-    { icon: Star,       label: 'Avg Rating',        value: '4.8',   color: 'from-yellow-500 to-orange-600' },
+    { icon: BookOpen,   label: 'Active Skills',        value: platformStats.activeSkills.toString(),       color: 'from-blue-500 to-blue-600' },
+    { icon: Users,      label: 'Active Users',          value: platformStats.activeUsers.toString(),        color: 'from-purple-500 to-purple-600' },
+    { icon: TrendingUp, label: 'Completed Sessions',    value: platformStats.completedSessions.toString(),  color: 'from-pink-500 to-pink-600' },
+    { icon: Star,       label: 'Avg Rating',            value: platformStats.avgRating.toFixed(1),          color: 'from-yellow-500 to-orange-600' },
   ];
 
   return (

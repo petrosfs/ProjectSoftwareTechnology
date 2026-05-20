@@ -13,6 +13,7 @@ import { reviewsRouter } from './reviews.js';
 import { messagesRouter } from './messages.js';
 import { connectionsRouter } from './connections.js';
 import { notificationsRouter } from './notifications.js';
+import { statsRouter } from './stats.js';
 
 export const apiRouter = Router();
 
@@ -30,3 +31,4 @@ apiRouter.use('/reviews', reviewsRouter);
 apiRouter.use('/messages', messagesRouter);
 apiRouter.use('/connections', connectionsRouter);
 apiRouter.use('/notifications', notificationsRouter);
+apiRouter.use('/stats', statsRouter);
