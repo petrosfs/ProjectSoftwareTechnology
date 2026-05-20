@@ -46,10 +46,22 @@ export async function getDb(): Promise<DbWrapper> {
 }
 
 async function runMigrations(): Promise<void> {
-  // Add last_message_at to conversations if it was missing from an earlier schema version
   await pool.query(`
     ALTER TABLE conversations ADD COLUMN IF NOT EXISTS
       last_message_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
+  `);
+  // Recalculate rating/reviews_count for all users from actual review data
+  await pool.query(`
+    UPDATE users u
+    SET
+      rating = COALESCE(agg.avg_rating, 0),
+      reviews_count = COALESCE(agg.cnt, 0)
+    FROM (
+      SELECT reviewee_id, AVG(rating)::NUMERIC(4,2) AS avg_rating, COUNT(*)::INTEGER AS cnt
+      FROM reviews
+      GROUP BY reviewee_id
+    ) agg
+    WHERE u.id = agg.reviewee_id
   `);
 }
 
