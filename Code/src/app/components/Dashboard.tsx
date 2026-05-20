@@ -9,7 +9,7 @@ export function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'offer' | 'request'>('offer');
   const [listings, setListings] = useState<any[]>([]);
-  const [platformStats, setPlatformStats] = useState({ activeSkills: 0, activeUsers: 0, completedSessions: 0, avgRating: 0 });
+  const [platformStats, setPlatformStats] = useState<{ activeSkills: number; activeUsers: number; completedSessions: number; avgRating: number } | null>(null);
 
   useEffect(() => {
     fetch('/api/listings', { credentials: 'include' })
@@ -27,10 +27,10 @@ export function Dashboard() {
   );
 
   const stats = [
-    { icon: BookOpen,   label: 'Active Skills',        value: platformStats.activeSkills.toString(),       color: 'from-blue-500 to-blue-600' },
-    { icon: Users,      label: 'Active Users',          value: platformStats.activeUsers.toString(),        color: 'from-purple-500 to-purple-600' },
-    { icon: TrendingUp, label: 'Completed Sessions',    value: platformStats.completedSessions.toString(),  color: 'from-pink-500 to-pink-600' },
-    { icon: Star,       label: 'Avg Rating',            value: platformStats.avgRating.toFixed(1),          color: 'from-yellow-500 to-orange-600' },
+    { icon: BookOpen,   label: 'Active Skills',        value: platformStats ? platformStats.activeSkills.toString()            : '…', color: 'from-blue-500 to-blue-600' },
+    { icon: Users,      label: 'Active Users',          value: platformStats ? platformStats.activeUsers.toString()             : '…', color: 'from-purple-500 to-purple-600' },
+    { icon: TrendingUp, label: 'Completed Sessions',    value: platformStats ? platformStats.completedSessions.toString()       : '…', color: 'from-pink-500 to-pink-600' },
+    { icon: Star,       label: 'Avg Rating',            value: platformStats ? platformStats.avgRating.toFixed(1)               : '…', color: 'from-yellow-500 to-orange-600' },
   ];
 
   return (
