@@ -45,9 +45,18 @@ export async function getDb(): Promise<DbWrapper> {
   return db;
 }
 
+async function runMigrations(): Promise<void> {
+  // Add last_message_at to conversations if it was missing from an earlier schema version
+  await pool.query(`
+    ALTER TABLE conversations ADD COLUMN IF NOT EXISTS
+      last_message_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
+  `);
+}
+
 export async function initDb(): Promise<void> {
   const schema = readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
   await pool.query(schema);
+  await runMigrations();
   const { seedUsers, seedData } = await import('./seed.js');
   await seedUsers();
   await seedData();

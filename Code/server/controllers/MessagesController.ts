@@ -7,18 +7,18 @@ export class MessagesController {
     const rows = await db.all(
       `SELECT
          c.id,
-         c.last_message_at,
+         c.created_at AS conv_created_at,
          CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END AS other_id,
          u.name  AS other_name,
          u.avatar AS other_avatar,
          u.rating AS other_rating,
          (SELECT text       FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_msg,
          (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) AS last_msg_time,
-         (SELECT COUNT(*)   FROM messages WHERE conversation_id = c.id AND sender_id != ? AND is_read = 0) AS unread
+         (SELECT COUNT(*)::INTEGER FROM messages WHERE conversation_id = c.id AND sender_id != ? AND is_read = 0) AS unread
        FROM conversations c
        JOIN users u ON u.id = CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END
        WHERE c.user1_id = ? OR c.user2_id = ?
-       ORDER BY COALESCE(last_msg_time, c.created_at) DESC`,
+       ORDER BY (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) DESC NULLS LAST`,
       [userId, userId, userId, userId, userId]
     );
     return rows.map((r: any) => ({
@@ -26,7 +26,7 @@ export class MessagesController {
       otherUser: { id: r.other_id, name: r.other_name, avatar: r.other_avatar ?? null, rating: r.other_rating ?? 0 },
       lastMessage: r.last_msg ?? '',
       lastMessageTime: r.last_msg_time ?? null,
-      unreadCount: r.unread,
+      unreadCount: Number(r.unread),
     }));
   }
 

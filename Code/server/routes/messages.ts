@@ -7,8 +7,13 @@ export const messagesRouter = Router();
 messagesRouter.get('/conversations', async (req: Request, res: Response) => {
   const userId = req.session.userId;
   if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  const conversations = await messagesController.getConversations(userId);
-  res.json(conversations);
+  try {
+    const conversations = await messagesController.getConversations(userId);
+    res.json(conversations);
+  } catch (err: any) {
+    console.error('[GET /messages/conversations] Error:', err);
+    res.status(500).json({ error: err.message ?? 'Internal Server Error' });
+  }
 });
 
 // GET /api/messages/:id — messages in a conversation
