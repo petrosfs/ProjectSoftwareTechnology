@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
 import { getDb } from '../db/database.js';
-import messagesController from './MessagesController.js';
 import { createMeetingUrl } from '../services/MeetingService.js';
 import paymentController from './PaymentController.js';
 import { AppError, ErrorCodes as E } from '../utils/errors.js';
@@ -95,18 +94,19 @@ export class SessionController {
        data.skillTitle, data.scheduledAt, duration, mode, data.initiatedById, meetingUrl]
     );
 
-    // Send automated message to the other party
+    // Notify the other party via in-app notification
     const receiverId = data.initiatedById === data.teacherId ? data.learnerId : data.teacherId;
     const dateStr = data.scheduledAt.slice(0, 10);
     const timeStr = data.scheduledAt.slice(11, 16);
     try {
-      await messagesController.sendMessage(
-        data.initiatedById,
-        receiverId,
-        `Session request: "${data.skillTitle}" on ${dateStr} at ${timeStr} (${duration} min, ${mode}). Please respond in your Sessions page.`
+      await db.run(
+        `INSERT INTO notifications (id, user_id, type, reference_id, body)
+         VALUES (?, ?, 'in-app', ?, ?)`,
+        [randomUUID(), receiverId, id,
+         `Νέο αίτημα session για "${data.skillTitle}" στις ${dateStr} ${timeStr}. Δείτε το Sessions.`]
       );
     } catch {
-      // Message failure is non-fatal — session was created
+      // Notification failure is non-fatal — session was created
     }
 
     return { id, status: 'pending', ...data };
