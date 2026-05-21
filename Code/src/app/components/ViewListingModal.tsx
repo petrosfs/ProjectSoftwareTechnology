@@ -42,6 +42,8 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
   const [cvv, setCvv] = useState('');
   const [paymentInfo, setPaymentInfo] = useState<{ price: number; platformFee: number; total: number } | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -58,6 +60,8 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
       setPaymentInfo(null);
       setTeachMode('price');
       setProposedPrice('');
+      setDeleting(false);
+      setDeleteConfirm(false);
     }
   }, [isOpen]);
 
@@ -71,8 +75,6 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
   if (!isOpen || !listing) return null;
 
   const isOwnListing = user?.id === listing.userId;
-  const [deleting, setDeleting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
