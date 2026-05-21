@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, DollarSign, RefreshCw, Star, Calendar, MessageCircle, Check, Loader2, AlertCircle, ChevronRight, Send, ArrowLeft, CreditCard, Lock, Shield } from 'lucide-react';
+import { X, DollarSign, RefreshCw, Star, Calendar, MessageCircle, Check, Loader2, AlertCircle, ChevronRight, Send, ArrowLeft, CreditCard, Lock, Shield, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { SkillListing } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -15,11 +15,12 @@ interface ViewListingModalProps {
   isOpen: boolean;
   onClose: () => void;
   listing: SkillListing | null;
+  onDelete?: (id: string) => void;
 }
 
 type Step = 'view' | 'payment' | 'swapPicker' | 'messageComposer' | 'teachOffer' | 'success';
 
-export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalProps) {
+export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewListingModalProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -70,6 +71,25 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
   if (!isOpen || !listing) return null;
 
   const isOwnListing = user?.id === listing.userId;
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/listings/${listing!.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        onClose();
+        onDelete?.(listing!.id);
+      }
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     const text = messageText.trim();
@@ -776,8 +796,39 @@ export function ViewListingModal({ isOpen, onClose, listing }: ViewListingModalP
             {/* Actions */}
             <div className="space-y-4 pt-4 border-t-2 border-purple-100">
               {isOwnListing ? (
-                <div className="text-center p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
-                  <p className="text-yellow-800 font-medium">This is your own listing.</p>
+                <div className="space-y-3">
+                  <div className="p-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl">
+                    <p className="text-yellow-800 font-medium text-sm">Αυτή είναι η δική σου αγγελία.</p>
+                  </div>
+                  {!deleteConfirm ? (
+                    <button
+                      onClick={() => setDeleteConfirm(true)}
+                      className="w-full py-3 rounded-xl border-2 border-red-300 text-red-600 font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Διαγραφή Αγγελίας
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl space-y-3">
+                      <p className="text-red-800 font-semibold text-sm">Είσαι σίγουρος/η; Η αγγελία θα διαγραφεί οριστικά.</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setDeleteConfirm(false)}
+                          className="flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 text-sm"
+                        >
+                          Ακύρωση
+                        </button>
+                        <button
+                          onClick={handleDelete}
+                          disabled={deleting}
+                          className="flex-1 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50 text-sm flex items-center justify-center gap-1"
+                        >
+                          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          Διαγραφή
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : listing.type === 'request' ? (
                 /* ── Request listing: viewer proposes price or swap ── */

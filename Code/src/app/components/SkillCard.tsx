@@ -5,9 +5,10 @@ import { ViewListingModal } from './ViewListingModal';
 
 interface SkillCardProps {
   listing: SkillListing;
+  onDelete?: (id: string) => void;
 }
 
-export function SkillCard({ listing }: SkillCardProps) {
+export function SkillCard({ listing, onDelete }: SkillCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -16,6 +17,7 @@ export function SkillCard({ listing }: SkillCardProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         listing={listing}
+        onDelete={onDelete}
       />
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100 hover:shadow-xl transition-all hover:-translate-y-1 overflow-hidden group">
       {/* Header */}

@@ -17,6 +17,18 @@ listingsRouter.get('/:id', async (req: Request, res: Response) => {
   res.json(listing);
 });
 
+// Delete own listing
+listingsRouter.delete('/:id', async (req: Request, res: Response) => {
+  const userId = req.session.userId;
+  if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  try {
+    await listingController.deleteListing(req.params.id as string, userId);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(err.status ?? 500).json({ error: err.message });
+  }
+});
+
 // UC-REQ-02 & UC-PST-02: post a new listing
 listingsRouter.post('/', async (req: Request, res: Response) => {
   const userId = req.session.userId;

@@ -63,6 +63,14 @@ export class ListingController {
     return this.getListing(id);
   }
 
+  async deleteListing(id: string, userId: string) {
+    const db = await getDb();
+    const listing = await db.get('SELECT id, user_id FROM listings WHERE id = ?', id);
+    if (!listing) throw Object.assign(new Error('Listing not found'), { status: 404 });
+    if (listing.user_id !== userId) throw Object.assign(new Error('Not authorized'), { status: 403 });
+    await db.run('DELETE FROM listings WHERE id = ?', id);
+  }
+
   private mapRow(row: any) {
     return {
       id: row.id,

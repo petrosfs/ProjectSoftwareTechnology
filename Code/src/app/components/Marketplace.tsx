@@ -178,7 +178,11 @@ export function Marketplace() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredListings.map((listing) => (
-            <SkillCard key={listing.id} listing={listing} />
+            <SkillCard
+              key={listing.id}
+              listing={listing}
+              onDelete={(id) => setListings((prev) => prev.filter((l) => l.id !== id))}
+            />
           ))}
         </div>
       )}
