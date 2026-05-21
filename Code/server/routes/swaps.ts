@@ -36,7 +36,7 @@ swapsRouter.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const { responderId, offeredSkillId, targetSkillId, message } = req.body;
+    const { responderId, offeredSkillId, targetSkillId, wantedSkillId, message } = req.body;
     if (!responderId || !offeredSkillId || !targetSkillId) {
       res.status(400).json({ error: 'responderId, offeredSkillId and targetSkillId are required' });
       return;
@@ -47,6 +47,7 @@ swapsRouter.post('/', async (req: Request, res: Response) => {
       responderId,
       offeredSkillId,
       targetSkillId,
+      wantedSkillId: wantedSkillId ?? undefined,
       message,
     });
     res.status(201).json(swap);

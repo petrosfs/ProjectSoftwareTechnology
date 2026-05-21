@@ -35,6 +35,9 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
   const [messageText, setMessageText] = useState('');
   const [teachMode, setTeachMode] = useState<'price' | 'swap'>('price');
   const [proposedPrice, setProposedPrice] = useState('');
+  const [ownerSkills, setOwnerSkills] = useState<UserSkill[]>([]);
+  const [selectedOwnerSkillId, setSelectedOwnerSkillId] = useState('');
+  const [loadingOwnerSkills, setLoadingOwnerSkills] = useState(false);
   // Payment form state
   const [cardNumber, setCardNumber] = useState('');
   const [cardName, setCardName] = useState('');
@@ -60,6 +63,8 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
       setPaymentInfo(null);
       setTeachMode('price');
       setProposedPrice('');
+      setOwnerSkills([]);
+      setSelectedOwnerSkillId('');
       setDeleting(false);
       setDeleteConfirm(false);
     }
@@ -233,6 +238,17 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
     }
   };
 
+  const loadOwnerSkillsIfNeeded = async () => {
+    if (!listing || ownerSkills.length > 0) return;
+    setLoadingOwnerSkills(true);
+    try {
+      const res = await fetch(`/api/users/${listing.userId}/skills`, { credentials: 'include' });
+      if (res.ok) setOwnerSkills(await res.json());
+    } finally {
+      setLoadingOwnerSkills(false);
+    }
+  };
+
   const handleTeachPriceOffer = async () => {
     const price = Number(proposedPrice);
     if (!proposedPrice || isNaN(price) || price <= 0) {
@@ -262,19 +278,25 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
   };
 
   const handleSwap = async () => {
-    if (!selectedSkillId) { setError('Please select a skill to offer'); return; }
+    if (!selectedSkillId) { setError('Επίλεξε ένα skill σου για να προσφέρεις'); return; }
+    if (listing!.type === 'request' && !selectedOwnerSkillId) {
+      setError('Επίλεξε ένα skill του χρήστη που θέλεις ως αντάλλαγμα');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
+      const body: Record<string, string> = {
+        responderId: listing!.userId,
+        offeredSkillId: selectedSkillId,
+        targetSkillId: listing!.id,
+      };
+      if (listing!.type === 'request') body.wantedSkillId = selectedOwnerSkillId;
       const res = await fetch('/api/swaps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          responderId: listing.userId,
-          offeredSkillId: selectedSkillId,
-          targetSkillId: listing.id,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -525,7 +547,7 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
                 Propose a Price
               </button>
               <button
-                onClick={() => { setTeachMode('swap'); setError(''); loadSkillsIfNeeded(); }}
+                onClick={() => { setTeachMode('swap'); setError(''); loadSkillsIfNeeded(); loadOwnerSkillsIfNeeded(); }}
                 className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
                   teachMode === 'swap' ? 'bg-white text-purple-700 shadow' : 'text-gray-500 hover:text-gray-700'
                 }`}
@@ -574,40 +596,79 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
 
             {/* Swap mode */}
             {teachMode === 'swap' && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500">
-                  Επίλεξε ένα από τα skills σου για να προτείνεις ανταλλαγή με <strong>{listing.userName}</strong>.
-                </p>
-                {loadingSkills ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
-                  </div>
-                ) : mySkills.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Δεν έχεις skills στο προφίλ σου.</p>
-                    <p className="text-sm mt-1">Πρόσθεσε skills από τη σελίδα Προφίλ.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-56 overflow-y-auto">
-                    {mySkills.map(skill => (
-                      <button
-                        key={skill.id}
-                        onClick={() => setSelectedSkillId(skill.id)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-left ${
-                          selectedSkillId === skill.id
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-purple-300'
-                        }`}
-                      >
-                        <div>
-                          <p className="font-semibold text-gray-900">{skill.name}</p>
-                          <p className="text-xs text-gray-500">{skill.level} · {skill.yearsOfExperience} yr{skill.yearsOfExperience !== 1 ? 's' : ''}</p>
-                        </div>
-                        {selectedSkillId === skill.id && <Check className="w-5 h-5 text-purple-600 flex-shrink-0" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="space-y-4">
+                {/* My skill — what I'll teach */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Skill που προσφέρεις (θα διδάξεις)
+                  </p>
+                  {loadingSkills ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                    </div>
+                  ) : mySkills.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                      <p>Δεν έχεις skills στο προφίλ σου.</p>
+                      <p className="mt-0.5">Πρόσθεσε skills από τη σελίδα Προφίλ.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {mySkills.map(skill => (
+                        <button
+                          key={skill.id}
+                          onClick={() => setSelectedSkillId(skill.id)}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 transition-all text-left ${
+                            selectedSkillId === skill.id
+                              ? 'border-purple-500 bg-purple-50'
+                              : 'border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">{skill.name}</p>
+                            <p className="text-xs text-gray-500">{skill.level} · {skill.yearsOfExperience} yr{skill.yearsOfExperience !== 1 ? 's' : ''}</p>
+                          </div>
+                          {selectedSkillId === skill.id && <Check className="w-4 h-4 text-purple-600 flex-shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Owner's skill — what I want in return */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Skill που θέλεις ως αντάλλαγμα (από τον/την {listing.userName})
+                  </p>
+                  {loadingOwnerSkills ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                    </div>
+                  ) : ownerSkills.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                      <p>Ο/Η {listing.userName} δεν έχει skills στο προφίλ του/της.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {ownerSkills.map(skill => (
+                        <button
+                          key={skill.id}
+                          onClick={() => setSelectedOwnerSkillId(skill.id)}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border-2 transition-all text-left ${
+                            selectedOwnerSkillId === skill.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">{skill.name}</p>
+                            <p className="text-xs text-gray-500">{skill.level} · {skill.yearsOfExperience} yr{skill.yearsOfExperience !== 1 ? 's' : ''}</p>
+                          </div>
+                          {selectedOwnerSkillId === skill.id && <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -636,7 +697,7 @@ export function ViewListingModal({ isOpen, onClose, listing, onDelete }: ViewLis
               ) : (
                 <button
                   onClick={handleSwap}
-                  disabled={!selectedSkillId || submitting || mySkills.length === 0}
+                  disabled={!selectedSkillId || (listing.type === 'request' && !selectedOwnerSkillId) || submitting || mySkills.length === 0}
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity flex items-center justify-center gap-2"
                 >
                   {submitting ? <><Loader2 className="w-4 h-4 animate-spin" />Αποστολή…</> : <><RefreshCw className="w-4 h-4" />Πρόταση Ανταλλαγής</>}

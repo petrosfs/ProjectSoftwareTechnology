@@ -51,6 +51,7 @@ async function runMigrations(): Promise<void> {
       last_message_at TEXT DEFAULT (TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
   `);
   await pool.query(`ALTER TABLE offers ADD COLUMN IF NOT EXISTS proposed_price REAL`);
+  await pool.query(`ALTER TABLE swaps ADD COLUMN IF NOT EXISTS wanted_skill_id TEXT REFERENCES skills(id)`);
   // Recalculate rating/reviews_count for all users from actual review data
   await pool.query(`
     UPDATE users u
